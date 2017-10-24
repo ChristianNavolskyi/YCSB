@@ -17,9 +17,9 @@
 
 package com.yahoo.ycsb.db;
 
-import com.sun.tools.classfile.Opcode;
-import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.workloads.CoreWorkload;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DBException;
+import com.yahoo.ycsb.StringByteIterator;
 import org.junit.*;
 
 import java.io.File;
@@ -48,21 +48,22 @@ public class FileStoreClientTest {
   private static final String REQUEST_DISTRIBUTION_IDENTIFIER = "requestdistribution";
   private static final String REQUEST_DISTRIBUTION = "zipifan";
 
-  private final String OUTPUT_DIRECTORY_IDENTIFIER = "outputDirectory";
+  private static final String OUTPUT_DIRECTORY_IDENTIFIER = "outputDirectory";
   private static final String OUTPUT_DIRECTORY = System.getProperty("user.dir") + File.separatorChar + "tmp" + File
       .separatorChar;
 
-  private final String ENABLE_PRETTY_PRINTING_IDENTIFIER = "enablePrettyPrinting";
-  private final String ENABLE_PRETTY_PRINTING = "true";
-  private final String TABLE = "table";
-  private final String KEY = "key";
-  private final String MAP_KEY = "mapKey";
-  private final String ITERATOR_VALUE = "test";
-  private final String OTHER_ITERATOR_VALUE = "other Value";
-  private final String OTHER_MAP_KEY = "other";
+  private static final String ENABLE_PRETTY_PRINTING_IDENTIFIER = "enablePrettyPrinting";
+  private static final String ENABLE_PRETTY_PRINTING = "true";
 
-  private FileStoreClient fileStoreClient;
+  private static final String TABLE = "table";
+  private static final String KEY = "key";
+  private static final String MAP_KEY = "mapKey";
+  private static final String ITERATOR_VALUE = "test";
+  private static final String OTHER_ITERATOR_VALUE = "other Value";
+  private static final String OTHER_MAP_KEY = "other";
+
   private static Properties workloadProperties;
+  private FileStoreClient fileStoreClient;
 
   @BeforeClass
   public static void setUpWorkload() {
