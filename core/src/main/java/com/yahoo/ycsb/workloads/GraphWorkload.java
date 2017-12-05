@@ -13,7 +13,9 @@ public class GraphWorkload extends Workload {
 
   public static final String GRAPH_TABLE_NAME = "graphTable";
   public static final int NODE_BYTE_SIZE = 500;
-  
+  public static final String NODE_IDENTIFIER = "Node_";
+  public static final String EDGE_IDENTIFIER = "Edge_";
+
   GraphGenerator graphGenerator;
 
   @Override
@@ -48,7 +50,7 @@ public class GraphWorkload extends Workload {
   }
 
   private boolean insertNode(DB db, Node node) {
-    String key = "" + node.getId();
+    String key = NODE_IDENTIFIER + node.getId();
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     values.put("label", new StringByteIterator(node.getLabel()));
@@ -58,7 +60,7 @@ public class GraphWorkload extends Workload {
   }
 
   private boolean insertEdge(DB db, Edge edge) {
-    String key = "" + edge.getId();
+    String key = EDGE_IDENTIFIER + edge.getId();
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     values.put("label", new StringByteIterator(edge.getLabel()));
