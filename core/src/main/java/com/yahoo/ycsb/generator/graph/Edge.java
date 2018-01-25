@@ -1,5 +1,8 @@
 package com.yahoo.ycsb.generator.graph;
 
+/**
+ * Edge for the graph in the graph workload.
+ */
 public class Edge {
   private static long edgeIdCount = 0;
   private long id;
@@ -8,7 +11,7 @@ public class Edge {
 
   private String label;
 
-  protected Edge(Node startNode, Node endNode, String label) {
+  Edge(Node startNode, Node endNode, String label) {
     this.id = edgeIdCount++;
     this.startNode = startNode;
     this.endNode = endNode;

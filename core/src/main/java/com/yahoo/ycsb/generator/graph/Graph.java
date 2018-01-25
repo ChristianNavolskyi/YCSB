@@ -1,12 +1,18 @@
 package com.yahoo.ycsb.generator.graph;
 
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Graph for the graph workload.
+ */
 public class Graph {
   private List<Node> nodes;
   private List<Edge> edges;
 
-  protected Graph() {
+  Graph() {
+    nodes = new ArrayList<>();
+    edges = new ArrayList<>();
   }
 
   public List<Node> getNodes() {
