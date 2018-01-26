@@ -15,6 +15,11 @@ public class GraphWorkload extends Workload {
   public static final int NODE_BYTE_SIZE = 500;
   public static final String NODE_IDENTIFIER = "Node_";
   public static final String EDGE_IDENTIFIER = "Edge_";
+  public static final String GRAPH_ID_IDENTIFIER = "id";
+  public static final String GRAPH_LABEL_IDENTIFIER = "label";
+  public static final String GRAPH_VALUE_IDENTIFIER = "value";
+  public static final String GRAPH_START_IDENTIFIER = "start";
+  public static final String GRAPH_END_IDENTIFIER = "end";
 
   GraphGenerator graphGenerator;
 
@@ -50,24 +55,24 @@ public class GraphWorkload extends Workload {
   }
 
   private boolean insertNode(DB db, Node node) {
-    String key = NODE_IDENTIFIER + node.getId();
     HashMap<String, ByteIterator> values = new HashMap<>();
 
-    values.put("label", new StringByteIterator(node.getLabel()));
-    values.put("value", new RandomByteIterator(NODE_BYTE_SIZE));
+    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(node.getId())));
+    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(node.getLabel()));
+    values.put(GRAPH_VALUE_IDENTIFIER, new RandomByteIterator(NODE_BYTE_SIZE));
 
-    return db.insert(GRAPH_TABLE_NAME, key, values).isOk();
+    return db.insert(GRAPH_TABLE_NAME, NODE_IDENTIFIER, values).isOk();
   }
 
   private boolean insertEdge(DB db, Edge edge) {
-    String key = EDGE_IDENTIFIER + edge.getId();
     HashMap<String, ByteIterator> values = new HashMap<>();
 
-    values.put("label", new StringByteIterator(edge.getLabel()));
-    values.put("start", new NumericByteIterator(edge.getStartNode().getId()));
-    values.put("end", new NumericByteIterator(edge.getEndNode().getId()));
+    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(edge.getId())));
+    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(edge.getLabel()));
+    values.put(GRAPH_START_IDENTIFIER, new NumericByteIterator(edge.getStartNode().getId()));
+    values.put(GRAPH_END_IDENTIFIER, new NumericByteIterator(edge.getEndNode().getId()));
 
-    return db.insert(GRAPH_TABLE_NAME, key, values).isOk();
+    return db.insert(GRAPH_TABLE_NAME, EDGE_IDENTIFIER, values).isOk();
   }
 
 }
