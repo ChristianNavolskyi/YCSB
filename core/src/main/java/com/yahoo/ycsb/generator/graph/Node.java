@@ -1,25 +1,40 @@
 package com.yahoo.ycsb.generator.graph;
 
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.RandomByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
+import com.yahoo.ycsb.workloads.GraphWorkload;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Nodes for the graph in the graph workload.
  */
-public class Node {
+public class Node extends GraphComponent {
+  public static final Set<String> NODE_FIELDS_SET = new HashSet<>();
+  private static final String VALUE_IDENTIFIER = "value";
+  private static final Object LOCK = new Object();
   private static long nodeIdCount = 0;
 
-  private long id;
-
-  private String label;
+  static {
+    NODE_FIELDS_SET.add(ID_IDENTIFIER);
+    NODE_FIELDS_SET.add(LABEL_IDENTIFIER);
+    NODE_FIELDS_SET.add(VALUE_IDENTIFIER);
+  }
 
   Node(String label) {
-    this.id = nodeIdCount++;
-    this.label = label;
+    super(label, nodeIdCount++, LOCK);
   }
 
-  public long getId() {
-    return id;
-  }
+  @Override
+  public Map<String, ByteIterator> getHashMap() {
+    java.util.HashMap<String, ByteIterator> values = new HashMap<>();
 
-  public String getLabel() {
-    return label;
+    values.put("label", new StringByteIterator(getLabel()));
+    values.put("value", new RandomByteIterator(GraphWorkload.getNodeByteSize()));
+    return values;
   }
 }
