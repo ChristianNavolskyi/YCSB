@@ -15,7 +15,6 @@ public class Edge extends GraphComponent {
   public static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
   private static final String START_IDENTIFIER = "start";
   private static final String END_IDENTIFIER = "end";
-  private static final Object LOCK = new Object();
   private static long edgeIdCount = 0;
 
   static {
@@ -29,18 +28,14 @@ public class Edge extends GraphComponent {
   private Node endNode;
 
   Edge(Node startNode, Node endNode, String label) {
-    super(label, edgeIdCount++, LOCK);
+    super(label, getAndIncrementIdCounter());
 
     this.startNode = startNode;
     this.endNode = endNode;
   }
 
-  public Node getStartNode() {
-    return startNode;
-  }
-
-  public Node getEndNode() {
-    return endNode;
+  private synchronized static long getAndIncrementIdCounter() {
+    return edgeIdCount++;
   }
 
   @Override
@@ -48,8 +43,8 @@ public class Edge extends GraphComponent {
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     values.put("label", new StringByteIterator(getLabel()));
-    values.put("start", new StringByteIterator(String.valueOf(getStartNode().getId())));
-    values.put("end", new StringByteIterator(String.valueOf(getEndNode().getId())));
+    values.put("start", new StringByteIterator(String.valueOf(startNode.getId())));
+    values.put("end", new StringByteIterator(String.valueOf(endNode.getId())));
     return values;
   }
 }

@@ -13,10 +13,8 @@ public abstract class GraphComponent {
   private long id;
   private String label;
 
-  GraphComponent(String label, long id, Object lock) {
-    synchronized (lock) {
-      this.id = id;
-    }
+  GraphComponent(String label, long id) {
+    this.id = id;
     this.label = label;
   }
 
@@ -24,7 +22,7 @@ public abstract class GraphComponent {
     return id;
   }
 
-  public final String getLabel() {
+  final String getLabel() {
     return label;
   }
 

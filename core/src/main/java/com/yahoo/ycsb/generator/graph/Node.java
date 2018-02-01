@@ -16,7 +16,6 @@ import java.util.Set;
 public class Node extends GraphComponent {
   public static final Set<String> NODE_FIELDS_SET = new HashSet<>();
   private static final String VALUE_IDENTIFIER = "value";
-  private static final Object LOCK = new Object();
   private static long nodeIdCount = 0;
 
   static {
@@ -26,7 +25,11 @@ public class Node extends GraphComponent {
   }
 
   Node(String label) {
-    super(label, nodeIdCount++, LOCK);
+    super(label, getAndIncrementIdCounter());
+  }
+
+  private synchronized static long getAndIncrementIdCounter() {
+    return nodeIdCount++;
   }
 
   @Override
