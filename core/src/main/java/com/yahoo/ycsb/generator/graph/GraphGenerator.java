@@ -45,9 +45,7 @@ public class GraphGenerator extends Generator<Graph> {
 
     lastValue = null;
   }
-
-
-  //TODO count in workload, nextValue only adds one node
+  
   @Override
   public Graph nextValue() {
     lastValue = createGraphNode();

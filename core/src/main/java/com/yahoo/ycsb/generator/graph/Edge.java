@@ -34,7 +34,19 @@ public class Edge extends GraphComponent {
     this.endNode = endNode;
   }
 
-  private synchronized static long getAndIncrementIdCounter() {
+  private Edge(long id) {
+    super(id);
+  }
+
+  public static Edge recreateEdge(long id) {
+    return new Edge(id);
+  }
+
+  public static long getEdgeIdCount() {
+    return edgeIdCount;
+  }
+
+  private static synchronized long getAndIncrementIdCounter() {
     return edgeIdCount++;
   }
 

@@ -113,7 +113,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionRead(DB db) {
-    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser().choose();
+    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -126,16 +126,15 @@ public class GraphWorkload extends Workload {
     printMap(map);
   }
 
-  private void printMap(Map<String, ByteIterator> map) {
-    for (String s : map.keySet()) {
-      System.out.println("Key: " + s + " Value: " + map.get(s));
-    }
-  }
-
   private void doTransactionUpdate(DB db) {
     RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
 
-    Map<String, ByteIterator> map = randomGraphComponentChooser.graphComponent.getHashMap();
+    Map<String, ByteIterator> map = new HashMap<>();
+
+    db.read(GRAPH_TABLE_NAME,
+        randomGraphComponentChooser.key,
+        randomGraphComponentChooser.fieldSet,
+        map);
 
     db.update(GRAPH_TABLE_NAME,
         randomGraphComponentChooser.key,
@@ -146,7 +145,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionScan(DB db) {
-    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser().choose();
+    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
@@ -181,18 +180,26 @@ public class GraphWorkload extends Workload {
     db.update(GRAPH_TABLE_NAME, key, values);
   }
 
-  private Edge chooseRandomEdge() {
-    Graph graph = graphGenerator.lastValue();
-    int position = random.nextInt(graph.getEdges().size());
+  private void printMap(Map<String, ByteIterator> map) {
+    for (String s : map.keySet()) {
+      System.out.println("Key: " + s + " Value: " + map.get(s));
+    }
+  }
 
-    return graph.getEdges().get(position);
+  private Edge chooseRandomEdge() {
+    int maxBound = (int) Edge.getEdgeIdCount() == 0 ? 1 : (int) Edge.getEdgeIdCount();
+
+    int id = random.nextInt(maxBound);
+
+    return Edge.recreateEdge(id);
   }
 
   private Node chooseRandomNode() {
-    Graph graph = graphGenerator.lastValue();
-    int position = random.nextInt(graph.getNodes().size());
+    int maxBound = (int) Node.getNodeIdCount() == 0 ? 1 : (int) Node.getNodeIdCount();
 
-    return graph.getNodes().get(position);
+    int id = random.nextInt(maxBound);
+
+    return Node.recreateNode(id);
   }
 
   private int randomNodeOrEdge() {

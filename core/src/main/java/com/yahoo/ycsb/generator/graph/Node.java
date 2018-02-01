@@ -28,7 +28,19 @@ public class Node extends GraphComponent {
     super(label, getAndIncrementIdCounter());
   }
 
-  private synchronized static long getAndIncrementIdCounter() {
+  private Node(long id) {
+    super(id);
+  }
+
+  public static Node recreateNode(long id) {
+    return new Node(id);
+  }
+
+  public static long getNodeIdCount() {
+    return nodeIdCount;
+  }
+
+  private static synchronized long getAndIncrementIdCounter() {
     return nodeIdCount++;
   }
 
