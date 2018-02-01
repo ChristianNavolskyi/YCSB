@@ -2,8 +2,6 @@ package com.yahoo.ycsb.generator.graph;
 
 import com.yahoo.ycsb.generator.Generator;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -19,14 +17,16 @@ public class GraphGenerator extends Generator<Graph> {
   private static final int TEST_PARAMETER_COUNT_DEFAULT_VALUE = 128;
   private static final String PRODUCTS_PER_ORDER_KEY = "productsPerOrder";
   private static final int PRODUCTS_PER_ORDER_DEFAULT_VALUE = 10;
-  private static final String RECORDCOUNT_KEY = "recordcount";
-  private static final int RECORDCOUNT_DEFAULT = 100;
 
   private final int testParameterCount;
   private final int productsPerOrder;
-  private final int recordCount;
 
-  private int orderCount = 0;
+  private int productPerOrderCounter = 0;
+  private boolean shouldCreateProduct = true;
+  private boolean shouldCreateDate = true;
+  private boolean shouldCreateTests = true;
+  private int testCounter = 0;
+
   private Graph lastValue;
   private Node factory;
   private Node orders;
@@ -35,32 +35,22 @@ public class GraphGenerator extends Generator<Graph> {
   private Node product;
   private Node date;
   private Node tests;
-  private List<Node> testParameterNodes;
   private Node currentOrder;
-  private long recordCounter = 0;
 
   public GraphGenerator(Properties properties) {
-    testParameterNodes = new ArrayList<>();
-
     testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
         String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));
     productsPerOrder = Integer.valueOf(properties.getProperty(PRODUCTS_PER_ORDER_KEY,
         String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
-    recordCount = Integer.valueOf(properties.getProperty(RECORDCOUNT_KEY, String.valueOf(RECORDCOUNT_DEFAULT)));
 
     lastValue = null;
   }
 
+
+  //TODO count in workload, nextValue only adds one node
   @Override
   public Graph nextValue() {
-    if (recordCounter > recordCount) {
-      return new Graph();
-    } else if (lastValue == null) {
-      lastValue = buildInitialGraph();
-    } else {
-      lastValue = buildSubGraph();
-    }
-
+    lastValue = createGraphNode();
     return lastValue;
   }
 
@@ -73,93 +63,57 @@ public class GraphGenerator extends Generator<Graph> {
     }
   }
 
-  private Graph buildInitialGraph() {
+  private Graph createGraphNode() {
     Graph graph = new Graph();
-    if (recordCounter > recordCount) {
-      return graph;
+
+    if (factory == null) {
+      this.factory = new Node("Factory");
+      graph.addNode(this.factory);
+    } else if (machine == null) {
+      this.machine = new Node("Machine");
+      graph.addNode(this.machine);
+      graph.addEdge(new Edge(factory, machine, "owns"));
+    } else if (orders == null) {
+      this.orders = new Node("Orders");
+      graph.addNode(this.orders);
+      graph.addEdge(new Edge(factory, orders, "receives"));
+    } else if (design == null) {
+      this.design = new Node("Design");
+      graph.addNode(this.design);
+      graph.addEdge(new Edge(factory, design, "builds"));
+    } else if (productPerOrderCounter == 0) {
+      currentOrder = new Node("order");
+      graph.addNode(currentOrder);
+      graph.addEdge(new Edge(orders, currentOrder, "ordered"));
+      productPerOrderCounter = productsPerOrder;
+    } else if (shouldCreateProduct) {
+      product = new Node("Product");
+      graph.addNode(product);
+      graph.addEdge(new Edge(machine, product, "produced"));
+      graph.addEdge(new Edge(currentOrder, product, "ordered"));
+    } else if (shouldCreateDate) {
+      date = new Node("Date");
+      graph.addNode(date);
+      graph.addEdge(new Edge(product, date, "producedAt"));
+    } else if (shouldCreateTests) {
+      tests = new Node("Tests");
+      graph.addNode(tests);
+      graph.addEdge(new Edge(product, tests, "tested"));
+    } else if (testCounter < testParameterCount) {
+      Node testParameterNode = new Node("TestParameterNr:" + testCounter);
+      graph.addNode(testParameterNode);
+      graph.addEdge(new Edge(tests, testParameterNode, "hasTested"));
+      testCounter++;
     }
 
-    this.factory = new Node("Factory");
-    addNode(graph, this.factory);
-    if (recordCounter > recordCount) {
-      return graph;
+    if (testCounter >= testParameterCount - 1) {
+      shouldCreateProduct = true;
+      shouldCreateDate = true;
+      shouldCreateTests = true;
+      testCounter = 0;
+      productPerOrderCounter--;
     }
-
-    this.machine = new Node("Machine");
-    addNode(graph, this.machine);
-    graph.addEdge(new Edge(factory, machine, "owns"));
-    if (recordCounter > recordCount) {
-      return graph;
-    }
-
-    this.orders = new Node("Orders");
-    addNode(graph, this.orders);
-    graph.addEdge(new Edge(factory, orders, "receives"));
-    if (recordCounter > recordCount) {
-      return graph;
-    }
-
-    this.design = new Node("Design");
-    addNode(graph, this.design);
-    graph.addEdge(new Edge(factory, design, "builds"));
 
     return graph;
-  }
-
-  private Graph buildSubGraph() {
-    Graph subGraph = new Graph();
-    if (recordCounter > recordCount) {
-      return subGraph;
-    }
-
-    if (orderCount == 0) {
-      currentOrder = new Node("order");
-      addNode(subGraph, currentOrder);
-      subGraph.addEdge(new Edge(orders, currentOrder, "ordered"));
-      orderCount = productsPerOrder;
-      if (recordCounter > recordCount) {
-        return subGraph;
-      }
-    } else {
-      orderCount--;
-    }
-
-    product = new Node("Product");
-    addNode(subGraph, product);
-    subGraph.addEdge(new Edge(machine, product, "produced"));
-    subGraph.addEdge(new Edge(currentOrder, product, "ordered"));
-    if (recordCounter > recordCount) {
-      return subGraph;
-    }
-
-    date = new Node("Date");
-    addNode(subGraph, date);
-    subGraph.addEdge(new Edge(product, date, "producedAt"));
-    if (recordCounter > recordCount) {
-      return subGraph;
-    }
-
-    tests = new Node("Tests");
-    addNode(subGraph, tests);
-    subGraph.addEdge(new Edge(product, tests, "tested"));
-    if (recordCounter > recordCount) {
-      return subGraph;
-    }
-
-    for (int i = 0; i < testParameterCount; i++) {
-      testParameterNodes.add(new Node("TestParameterNr:" + i));
-      addNode(subGraph, testParameterNodes.get(i));
-      subGraph.addEdge(new Edge(tests, testParameterNodes.get(i), "hasTested"));
-      if (recordCounter > recordCount) {
-        return subGraph;
-      }
-    }
-
-    return subGraph;
-  }
-
-  private void addNode(Graph graph, Node node) {
-    graph.addNode(node);
-    recordCounter++;
   }
 }

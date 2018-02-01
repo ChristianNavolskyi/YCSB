@@ -18,6 +18,9 @@ import static com.yahoo.ycsb.workloads.CoreWorkload.*;
  * <p>
  * Every node will have a size of 500 Bytes by default.
  * This can be changed via the {@value NODE_BYTE_SIZE_PROPERTY} parameter.
+ * <p>
+ * The recordcount property determines how many nodes will be inserted. The total amount of database inserts could
+ * be higher due to edges being inserted.
  */
 public class GraphWorkload extends Workload {
 
@@ -200,6 +203,7 @@ public class GraphWorkload extends Workload {
     String key = NODE_IDENTIFIER + node.getId();
     Map<String, ByteIterator> values = node.getHashMap();
 
+    System.out.println("Node: " + key);
     printMap(values);
 
     return db.insert(GRAPH_TABLE_NAME, key, values).isOk();
@@ -209,6 +213,7 @@ public class GraphWorkload extends Workload {
     String key = EDGE_IDENTIFIER + edge.getId();
     Map<String, ByteIterator> values = edge.getHashMap();
 
+    System.out.println("Edge: " + key);
     printMap(values);
 
     return db.insert(GRAPH_TABLE_NAME, key, values).isOk();
