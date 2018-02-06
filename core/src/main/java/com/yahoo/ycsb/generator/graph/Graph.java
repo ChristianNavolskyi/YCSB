@@ -28,15 +28,6 @@ public class Graph {
   }
 
   public void addEdge(Edge edge) {
-    addNodeIfNotExisting(edge.getStartNode());
-    addNodeIfNotExisting(edge.getEndNode());
     edges.add(edge);
   }
-
-  private void addNodeIfNotExisting(Node node) {
-    if (!nodes.contains(node.getId())) {
-      addNode(node);
-    }
-  }
-
 }
