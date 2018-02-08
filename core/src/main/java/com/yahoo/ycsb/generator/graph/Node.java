@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static com.yahoo.ycsb.workloads.GraphWorkload.*;
+
 /**
  * Nodes for the graph in the graph workload.
  */
@@ -48,8 +50,9 @@ public class Node extends GraphComponent {
   public Map<String, ByteIterator> getHashMap() {
     java.util.HashMap<String, ByteIterator> values = new HashMap<>();
 
-    values.put("label", new StringByteIterator(getLabel()));
-    values.put("value", new RandomByteIterator(GraphWorkload.getNodeByteSize()));
+    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
+    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
+    values.put(GRAPH_VALUE_IDENTIFIER, new RandomByteIterator(GraphWorkload.getNodeByteSize()));
     return values;
   }
 }
