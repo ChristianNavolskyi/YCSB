@@ -43,8 +43,8 @@ public class FileStoreClient extends DB {
   /**
    * The name and default value of the property for the output directory for the files.
    */
-  public static final String OUTPUT_DIRECTORY_PROPERTY = "outputDirectory";
-  public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
+  private static final String OUTPUT_DIRECTORY_PROPERTY = "outputDirectory";
+  private static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
       + separatorChar
       + "benchmarkingData"
       + separatorChar;
@@ -53,14 +53,15 @@ public class FileStoreClient extends DB {
    * The property name to enable pretty printing of the json in created files.
    * This will increase the size of the files substantially!
    */
-  public static final String ENABLE_PRETTY_PRINTING = "enablePrettyPrinting";
-  public static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
+  private static final String ENABLE_PRETTY_PRINTING = "enablePrettyPrinting";
+  private static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
 
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
       ByteIteratorAdapter());
-  private Gson gson;
   private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
+  private Gson gson;
+  private Map<String, FileWriter> fileWriterMap;
   private String outputDirectory;
 
   @Override
@@ -83,6 +84,20 @@ public class FileStoreClient extends DB {
     }
 
     gson = gsonBuilder.create();
+    fileWriterMap = new HashMap<>();
+  }
+
+  @Override
+  public void cleanup() throws DBException {
+    for (String key : fileWriterMap.keySet()) {
+      try {
+        fileWriterMap.get(key).close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    super.cleanup();
   }
 
   /**
@@ -159,9 +174,18 @@ public class FileStoreClient extends DB {
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     String filename = getDatabaseFileName(table, key);
     String output = gson.toJson(values, valuesType);
+    FileWriter fileWriter;
 
-    try (FileWriter fileWriter = new FileWriter(filename)) {
+    try {
+      if (fileWriterMap.containsKey(key)) {
+        fileWriter = fileWriterMap.get(key);
+      } else {
+        fileWriter = new FileWriter(filename);
+        fileWriterMap.put(key, fileWriter);
+      }
       fileWriter.write(output);
+      fileWriter.write("\n");
+      fileWriter.flush();
       return Status.OK;
     } catch (IOException e) {
       e.printStackTrace();
