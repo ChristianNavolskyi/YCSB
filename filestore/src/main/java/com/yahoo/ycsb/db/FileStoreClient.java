@@ -112,7 +112,7 @@ public class FileStoreClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    String filename = getDatabaseFileName(table, key);
+    String filename = getDatabaseFileName(table);
 
     try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
       Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
@@ -131,11 +131,11 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status scan(String table,
-                     String startkey,
-                     int recordcount,
+                     String startKey,
+                     int recordCount,
                      Set<String> fields,
                      Vector<HashMap<String, ByteIterator>> result) {
-    String filename = getDatabaseFileName(table, startkey);
+    String filename = getDatabaseFileName(table);
 
     try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
       Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
@@ -151,7 +151,7 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status update(String table, String key, Map<String, ByteIterator> values) {
-    String filename = getDatabaseFileName(table, key);
+    String filename = getDatabaseFileName(table);
 
     try (JsonReader jsonReader = new JsonReader(new FileReader(filename))) {
       Map<String, ByteIterator> map = gson.fromJson(jsonReader, valuesType);
@@ -172,16 +172,16 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    String filename = getDatabaseFileName(table, key);
+    String filename = getDatabaseFileName(table);
     String output = gson.toJson(values, valuesType);
     FileWriter fileWriter;
 
     try {
-      if (fileWriterMap.containsKey(key)) {
-        fileWriter = fileWriterMap.get(key);
+      if (fileWriterMap.containsKey(table)) {
+        fileWriter = fileWriterMap.get(table);
       } else {
         fileWriter = new FileWriter(filename);
-        fileWriterMap.put(key, fileWriter);
+        fileWriterMap.put(table, fileWriter);
       }
       fileWriter.write(output);
       fileWriter.write("\n");
@@ -196,7 +196,7 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status delete(String table, String key) {
-    String filename = getDatabaseFileName(table, key);
+    String filename = getDatabaseFileName(table);
 
     if (new File(filename).delete()) {
       return Status.OK;
@@ -219,8 +219,8 @@ public class FileStoreClient extends DB {
     return result;
   }
 
-  private String getDatabaseFileName(String table, String key) {
-    return outputDirectory + table + "_" + key + ".json";
+  private String getDatabaseFileName(String table) {
+    return outputDirectory + table + ".json";
   }
 
   private class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
