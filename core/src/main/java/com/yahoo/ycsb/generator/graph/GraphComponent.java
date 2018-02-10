@@ -32,5 +32,7 @@ public abstract class GraphComponent {
     return label;
   }
 
+  public abstract String getComponentTypeIdentifier();
+
   public abstract Map<String, ByteIterator> getHashMap();
 }

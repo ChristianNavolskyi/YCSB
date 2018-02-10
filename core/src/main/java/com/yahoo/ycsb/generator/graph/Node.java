@@ -26,6 +26,8 @@ public class Node extends GraphComponent {
     NODE_FIELDS_SET.add(VALUE_IDENTIFIER);
   }
 
+  private final String nodeIdentifier = "Node";
+
   Node(String label) {
     super(label, getAndIncrementIdCounter());
   }
@@ -44,6 +46,11 @@ public class Node extends GraphComponent {
 
   private static synchronized long getAndIncrementIdCounter() {
     return nodeIdCount++;
+  }
+
+  @Override
+  public String getComponentTypeIdentifier() {
+    return nodeIdentifier;
   }
 
   @Override

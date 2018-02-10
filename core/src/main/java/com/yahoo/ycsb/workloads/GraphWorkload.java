@@ -19,7 +19,7 @@ import static com.yahoo.ycsb.workloads.CoreWorkload.*;
  * Every node will have a size of 500 Bytes by default.
  * This can be changed via the {@value NODE_BYTE_SIZE_PROPERTY} parameter.
  * <p>
- * The recordcount property determines how many nodes will be inserted. The total amount of database inserts could
+ * The recordCount property determines how many nodes will be inserted. The total amount of database inserts could
  * be higher due to edges being inserted.
  */
 public class GraphWorkload extends Workload {
@@ -30,9 +30,7 @@ public class GraphWorkload extends Workload {
   public static final String GRAPH_START_IDENTIFIER = "start";
   public static final String GRAPH_END_IDENTIFIER = "end";
 
-  private static final String GRAPH_TABLE_NAME = "graphTable";
-  private static final String NODE_IDENTIFIER = "Node";
-  private static final String EDGE_IDENTIFIER = "Edge";
+
   private static final int RANDOM_NODE = 0;
   private static final int RANDOM_EDGE = 1;
 
@@ -62,7 +60,7 @@ public class GraphWorkload extends Workload {
   }
 
   @Override
-  public boolean doInsert(DB db, Object threadstate) {
+  public boolean doInsert(DB db, Object threadState) {
     Graph graph = graphGenerator.nextValue();
 
     System.out.println("Inserting Nodes");
@@ -83,7 +81,7 @@ public class GraphWorkload extends Workload {
   }
 
   @Override
-  public boolean doTransaction(DB db, Object threadstate) {
+  public boolean doTransaction(DB db, Object threadState) {
     String nextOperation = discreteGenerator.nextValue();
 
     if (nextOperation == null) {
@@ -122,8 +120,8 @@ public class GraphWorkload extends Workload {
 
     Map<String, ByteIterator> map = new HashMap<>();
 
-    db.read(GRAPH_TABLE_NAME,
-        randomGraphComponentChooser.key,
+    db.read(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
+        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
         randomGraphComponentChooser.fieldSet,
         map
     );
@@ -136,15 +134,14 @@ public class GraphWorkload extends Workload {
 
     Map<String, ByteIterator> map = new HashMap<>();
 
-    db.read(GRAPH_TABLE_NAME,
-        randomGraphComponentChooser.key,
+    db.read(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
+        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
         randomGraphComponentChooser.fieldSet,
         map);
 
-    db.update(GRAPH_TABLE_NAME,
-        randomGraphComponentChooser.key,
-        map
-    );
+    db.update(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
+        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
+        map);
 
     printMap(map);
   }
@@ -154,8 +151,8 @@ public class GraphWorkload extends Workload {
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
-    db.scan(GRAPH_TABLE_NAME,
-        randomGraphComponentChooser.key,
+    db.scan(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
+        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
         maxScanLength,
         randomGraphComponentChooser.fieldSet,
         hashMaps
@@ -169,10 +166,9 @@ public class GraphWorkload extends Workload {
 
   private void doTransactionReadModifyWrite(DB db) {
     Node node = chooseRandomNode();
-    String key = NODE_IDENTIFIER + node.getId();
     Map<String, ByteIterator> values = new HashMap<>();
 
-    db.read(GRAPH_TABLE_NAME, key, NODE_FIELDS_SET, values);
+    db.read(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), NODE_FIELDS_SET, values);
 
     System.out.println("old");
     printMap(values);
@@ -182,7 +178,7 @@ public class GraphWorkload extends Workload {
     System.out.println("new");
     printMap(values);
 
-    db.update(GRAPH_TABLE_NAME, key, values);
+    db.update(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values);
   }
 
   private void printMap(Map<String, ByteIterator> map) {
@@ -217,7 +213,7 @@ public class GraphWorkload extends Workload {
     System.out.println("Node: " + node.getId());
     printMap(values);
 
-    return db.insert(GRAPH_TABLE_NAME, NODE_IDENTIFIER, values).isOk();
+    return db.insert(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values).isOk();
   }
 
   private boolean insertEdge(DB db, Edge edge) {
@@ -226,37 +222,32 @@ public class GraphWorkload extends Workload {
     System.out.println("Edge: " + edge.getId());
     printMap(values);
 
-    return db.insert(GRAPH_TABLE_NAME, EDGE_IDENTIFIER, values).isOk();
+    return db.insert(edge.getComponentTypeIdentifier(), String.valueOf(edge.getId()), values).isOk();
   }
 
   private class RandomGraphComponentChooser {
     private GraphComponent graphComponent;
     private Set<String> fieldSet;
-    private String key;
 
     RandomGraphComponentChooser() {
       this.fieldSet = new HashSet<>();
-      this.key = "";
 
       choose();
     }
 
-    private RandomGraphComponentChooser choose() {
+    private void choose() {
       switch (randomNodeOrEdge()) {
       case RANDOM_NODE:
         graphComponent = chooseRandomNode();
-        key = NODE_IDENTIFIER + graphComponent.getId();
         fieldSet = NODE_FIELDS_SET;
         break;
       case RANDOM_EDGE:
         graphComponent = chooseRandomEdge();
-        key = EDGE_IDENTIFIER + graphComponent.getId();
         fieldSet = EDGE_FIELDS_SET;
         break;
       default:
         break;
       }
-      return this;
     }
   }
 }
