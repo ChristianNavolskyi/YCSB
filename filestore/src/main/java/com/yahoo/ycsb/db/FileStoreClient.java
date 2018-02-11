@@ -57,7 +57,8 @@ public class FileStoreClient extends DB {
   private static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
       ByteIteratorAdapter());
-  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
+  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {
+  }.getType();
 
   private Gson gson;
   private Map<String, FileWriter> fileWriterMap;
@@ -142,7 +143,7 @@ public class FileStoreClient extends DB {
 
       int start = Integer.parseInt(startKey);
       int lastWantedKey = start + recordCount - 1;
-      int lastPossibleKey = getKey(strings.get(strings.size() - 1));
+      int lastPossibleKey = getKeyFromKeyString(strings.get(strings.size() - 1));
 
       int lastKeyToScan = lastPossibleKey > lastWantedKey ? lastWantedKey : lastPossibleKey;
 
@@ -172,7 +173,12 @@ public class FileStoreClient extends DB {
         map.put(valuesKey, values.get(valuesKey));
       }
 
-      insert(table, key, map);
+      String updatedEntry = gson.toJson(map, valuesType);
+      String updatedFileContent = replaceEntry(updatedEntry, key, filename);
+
+      FileWriter fileWriter = getFileWriter(table, false);
+      writeToFile(key, updatedFileContent, fileWriter);
+      fileWriter.close();
 
       return Status.OK;
     } catch (IOException e) {
@@ -184,53 +190,17 @@ public class FileStoreClient extends DB {
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    String filename = getDatabaseFileName(table);
     String output = gson.toJson(values, valuesType);
-    FileWriter fileWriter;
 
-    try {
-      if (fileWriterMap.containsKey(table)) {
-        fileWriter = fileWriterMap.get(table);
-      } else {
-        fileWriter = new FileWriter(filename);
-        fileWriterMap.put(table, fileWriter);
-      }
-      fileWriter.write(getKeyString(key));
-      fileWriter.write(output);
-      fileWriter.write("\n");
-      fileWriter.flush();
+    try (FileWriter fileWriter = getFileWriter(table, true)) {
+      writeToFile(key, output, fileWriter);
+
       return Status.OK;
     } catch (IOException e) {
       e.printStackTrace();
     }
 
     return Status.ERROR;
-  }
-
-  private JsonReader getJsonReader(String key, String filename) throws IOException {
-    FileReader fileReader = new FileReader(filename);
-    List<String> components = Files.readAllLines(Paths.get(filename), Charset.forName(fileReader.getEncoding()));
-    String desiredComponent = "";
-    for (String component : components) {
-      String keyString = getKeyString(key);
-      if (component.startsWith(keyString)) {
-        desiredComponent = component.substring(keyString.length());
-      }
-    }
-
-    return new JsonReader(new StringReader(desiredComponent));
-  }
-
-  private String getKeyString(String key) {
-    return KEY_IDENTIFIER + "-" + key + "-";
-  }
-
-  private int getKey(String documentValue) {
-    String result = documentValue.replaceAll("-", "");
-    result = result.substring(KEY_IDENTIFIER.length());
-    result = result.split("\\{")[0];
-
-    return Integer.valueOf(result);
   }
 
   @Override
@@ -242,6 +212,64 @@ public class FileStoreClient extends DB {
     }
 
     return Status.ERROR;
+  }
+
+  private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
+    fileWriter.write(getKeyString(key));
+    fileWriter.write(output);
+    fileWriter.write("\n");
+    fileWriter.flush();
+  }
+
+  private FileWriter getFileWriter(String table, boolean append) throws IOException {
+    String filename = getDatabaseFileName(table);
+    return new FileWriter(filename, append);
+  }
+
+  private JsonReader getJsonReader(String key, String filename) throws IOException {
+    List<String> components = getLinesOfStringsFromFile(filename);
+    String desiredComponent = "";
+    for (String component : components) {
+      String keyString = getKeyString(key);
+      // TODO insert does contain key?
+      if (component.startsWith(keyString)) {
+        desiredComponent = component.substring(keyString.length());
+      }
+    }
+
+    return new JsonReader(new StringReader(desiredComponent));
+  }
+
+  private List<String> getLinesOfStringsFromFile(String filename) throws IOException {
+    FileReader fileReader = new FileReader(filename);
+    return Files.readAllLines(Paths.get(filename), Charset.forName(fileReader.getEncoding()));
+  }
+
+  private String replaceEntry(String updatedEntry, String key, String filename) throws IOException {
+    StringBuilder result = new StringBuilder();
+    int position = getKeyFromKeyString(key);
+    List<String> fileContents = getLinesOfStringsFromFile(filename);
+
+    fileContents.remove(position);
+    fileContents.add(position, updatedEntry);
+
+    for (String fileContent : fileContents) {
+      result.append(fileContent);
+    }
+
+    return result.toString();
+  }
+
+  private String getKeyString(String key) {
+    return KEY_IDENTIFIER + "-" + key + "-";
+  }
+
+  private int getKeyFromKeyString(String documentValue) {
+    String result = documentValue.replaceAll("-", "");
+    result = result.replaceAll(KEY_IDENTIFIER, "");
+    result = result.split("\\{")[0];
+
+    return Integer.valueOf(result);
   }
 
   private <V> HashMap<String, V> convertToHashMap(Map<String, V> map, Set<String> fields) {
