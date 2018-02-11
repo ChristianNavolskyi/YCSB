@@ -57,8 +57,7 @@ public class FileStoreClient extends DB {
   private static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
       ByteIteratorAdapter());
-  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {
-  }.getType();
+  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
   private Gson gson;
   private Map<String, FileWriter> fileWriterMap;
@@ -174,11 +173,7 @@ public class FileStoreClient extends DB {
       }
 
       String updatedEntry = gson.toJson(map, valuesType);
-      String updatedFileContent = replaceEntry(updatedEntry, key, filename);
-
-      FileWriter fileWriter = getFileWriter(table, false);
-      writeToFile(key, updatedFileContent, fileWriter);
-      fileWriter.close();
+      replaceEntryInFile(updatedEntry, key, filename);
 
       return Status.OK;
     } catch (IOException e) {
@@ -214,25 +209,12 @@ public class FileStoreClient extends DB {
     return Status.ERROR;
   }
 
-  private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
-    fileWriter.write(getKeyString(key));
-    fileWriter.write(output);
-    fileWriter.write("\n");
-    fileWriter.flush();
-  }
-
-  private FileWriter getFileWriter(String table, boolean append) throws IOException {
-    String filename = getDatabaseFileName(table);
-    return new FileWriter(filename, append);
-  }
-
   private JsonReader getJsonReader(String key, String filename) throws IOException {
     List<String> components = getLinesOfStringsFromFile(filename);
     String desiredComponent = "";
     String keyString = getKeyString(key);
 
     for (String component : components) {
-      // TODO insert does contain key?
       if (component.startsWith(keyString)) {
         desiredComponent = component.substring(keyString.length());
       }
@@ -246,25 +228,33 @@ public class FileStoreClient extends DB {
     return Files.readAllLines(Paths.get(filename), Charset.forName(fileReader.getEncoding()));
   }
 
-  private String replaceEntry(String updatedEntry, String key, String filename) throws IOException {
-    StringBuilder result = new StringBuilder();
-    List<String> resultingFileContents = new ArrayList<>();
+  private FileWriter getFileWriter(String table, boolean append) throws IOException {
+    String filename = getDatabaseFileName(table);
+    return new FileWriter(filename, append);
+  }
+
+  private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
+    fileWriter.write(getKeyString(key));
+    fileWriter.write(output);
+    fileWriter.write("\n");
+    fileWriter.flush();
+  }
+
+  private void replaceEntryInFile(String updatedEntry, String key, String filename) throws IOException {
     List<String> fileContents = getLinesOfStringsFromFile(filename);
     String keyString = getKeyString(key);
+    FileWriter fileWriter = new FileWriter(filename, false);
 
     for (String content : fileContents) {
       if (!content.startsWith(keyString)) {
-        resultingFileContents.add(content);
+        fileWriter.write(content);
+        fileWriter.write("\n");
       } else {
-        resultingFileContents.add(updatedEntry);
+        writeToFile(key, updatedEntry, fileWriter);
       }
     }
 
-    for (String resultingFileContent : resultingFileContents) {
-      result.append(resultingFileContent);
-    }
-
-    return result.toString();
+    fileWriter.close();
   }
 
   private String getKeyString(String key) {
