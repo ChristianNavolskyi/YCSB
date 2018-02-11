@@ -229,8 +229,9 @@ public class FileStoreClient extends DB {
   private JsonReader getJsonReader(String key, String filename) throws IOException {
     List<String> components = getLinesOfStringsFromFile(filename);
     String desiredComponent = "";
+    String keyString = getKeyString(key);
+
     for (String component : components) {
-      String keyString = getKeyString(key);
       // TODO insert does contain key?
       if (component.startsWith(keyString)) {
         desiredComponent = component.substring(keyString.length());
@@ -247,14 +248,20 @@ public class FileStoreClient extends DB {
 
   private String replaceEntry(String updatedEntry, String key, String filename) throws IOException {
     StringBuilder result = new StringBuilder();
-    int position = getKeyFromKeyString(key);
+    List<String> resultingFileContents = new ArrayList<>();
     List<String> fileContents = getLinesOfStringsFromFile(filename);
+    String keyString = getKeyString(key);
 
-    fileContents.remove(position);
-    fileContents.add(position, updatedEntry);
+    for (String content : fileContents) {
+      if (!content.startsWith(keyString)) {
+        resultingFileContents.add(content);
+      } else {
+        resultingFileContents.add(updatedEntry);
+      }
+    }
 
-    for (String fileContent : fileContents) {
-      result.append(fileContent);
+    for (String resultingFileContent : resultingFileContents) {
+      result.append(resultingFileContent);
     }
 
     return result.toString();
