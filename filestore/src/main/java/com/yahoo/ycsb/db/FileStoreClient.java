@@ -146,7 +146,7 @@ public class FileStoreClient extends DB {
 
       int lastKeyToScan = lastPossibleKey > lastWantedKey ? lastWantedKey : lastPossibleKey;
 
-      for (int i = start; i == lastKeyToScan; i++) {
+      for (int i = start; i <= lastKeyToScan; i++) {
         JsonReader jsonReader = getJsonReader(String.valueOf(i), filename);
         Map<String, ByteIterator> values = gson.fromJson(jsonReader, valuesType);
         result.add(convertToHashMap(values, fields));
@@ -188,7 +188,9 @@ public class FileStoreClient extends DB {
     String output = gson.toJson(values, valuesType);
 
     try (FileWriter fileWriter = getFileWriter(table, true)) {
-      writeToFile(key, output, fileWriter);
+      if (!containsKey(key, table)) {
+        writeToFile(key, output, fileWriter);
+      }
 
       return Status.OK;
     } catch (IOException e) {
@@ -261,6 +263,19 @@ public class FileStoreClient extends DB {
     return KEY_IDENTIFIER + "-" + key + "-";
   }
 
+  private boolean containsKey(String key, String table) throws IOException {
+    List<String> components = getLinesOfStringsFromFile(getDatabaseFileName(table));
+    String keyString = getKeyString(key);
+
+    for (String component : components) {
+      if (component.startsWith(keyString)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private int getKeyFromKeyString(String documentValue) {
     String result = documentValue.replaceAll("-", "");
     result = result.replaceAll(KEY_IDENTIFIER, "");
@@ -298,7 +313,7 @@ public class FileStoreClient extends DB {
                                  JsonSerializationContext jsonSerializationContext) {
       JsonObject result = new JsonObject();
       result.add(typeIdentifier, new JsonPrimitive(byteIterator.getClass().getName()));
-      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator));
+      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator, type));
 
       return result;
     }
