@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static com.yahoo.ycsb.workloads.GraphWorkload.*;
 import static java.io.File.separatorChar;
 
 /**
@@ -40,15 +41,6 @@ import static java.io.File.separatorChar;
  */
 public class FileStoreClient extends DB {
 
-  public static final String KEY_IDENTIFIER = "Key";
-  /**
-   * The name and default value of the property for the output directory for the files.
-   */
-  private static final String OUTPUT_DIRECTORY_PROPERTY = "outputDirectory";
-  private static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
-      + separatorChar
-      + "benchmarkingData"
-      + separatorChar;
   /**
    * The property name to enable pretty printing of the json in created files.
    * This will increase the size of the files substantially!
@@ -186,8 +178,9 @@ public class FileStoreClient extends DB {
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
     String output = gson.toJson(values, valuesType);
+    String filename = getDatabaseFileName(table);
 
-    try (FileWriter fileWriter = getFileWriter(table, true)) {
+    try (FileWriter fileWriter = new FileWriter(filename, true)) {
       if (!containsKey(key, table)) {
         writeToFile(key, output, fileWriter);
       }
@@ -228,11 +221,6 @@ public class FileStoreClient extends DB {
   private List<String> getLinesOfStringsFromFile(String filename) throws IOException {
     FileReader fileReader = new FileReader(filename);
     return Files.readAllLines(Paths.get(filename), Charset.forName(fileReader.getEncoding()));
-  }
-
-  private FileWriter getFileWriter(String table, boolean append) throws IOException {
-    String filename = getDatabaseFileName(table);
-    return new FileWriter(filename, append);
   }
 
   private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
@@ -276,14 +264,6 @@ public class FileStoreClient extends DB {
     return false;
   }
 
-  private int getKeyFromKeyString(String documentValue) {
-    String result = documentValue.replaceAll("-", "");
-    result = result.replaceAll(KEY_IDENTIFIER, "");
-    result = result.split("\\{")[0];
-
-    return Integer.valueOf(result);
-  }
-
   private <V> HashMap<String, V> convertToHashMap(Map<String, V> map, Set<String> fields) {
     HashMap<String, V> result = new HashMap<>();
 
@@ -313,7 +293,7 @@ public class FileStoreClient extends DB {
                                  JsonSerializationContext jsonSerializationContext) {
       JsonObject result = new JsonObject();
       result.add(typeIdentifier, new JsonPrimitive(byteIterator.getClass().getName()));
-      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator, type));
+      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator));
 
       return result;
     }
