@@ -42,10 +42,14 @@ public class GraphGenerator extends Generator<Graph> {
         String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));
     productsPerOrder = Integer.valueOf(properties.getProperty(PRODUCTS_PER_ORDER_KEY,
         String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
-
     lastValue = null;
   }
-  
+
+  public void setStartIds(int lastNodeId, int lastEdgeId) {
+    Node.presetId(lastNodeId);
+    Edge.presetId(lastEdgeId);
+  }
+
   @Override
   public Graph nextValue() {
     lastValue = createGraphNode();
@@ -89,14 +93,17 @@ public class GraphGenerator extends Generator<Graph> {
       graph.addNode(product);
       graph.addEdge(new Edge(machine, product, "produced"));
       graph.addEdge(new Edge(currentOrder, product, "ordered"));
+      shouldCreateProduct = false;
     } else if (shouldCreateDate) {
       date = new Node("Date");
       graph.addNode(date);
       graph.addEdge(new Edge(product, date, "producedAt"));
+      shouldCreateDate = false;
     } else if (shouldCreateTests) {
       tests = new Node("Tests");
       graph.addNode(tests);
       graph.addEdge(new Edge(product, tests, "tested"));
+      shouldCreateTests = false;
     } else if (testCounter < testParameterCount) {
       Node testParameterNode = new Node("TestParameterNr:" + testCounter);
       graph.addNode(testParameterNode);

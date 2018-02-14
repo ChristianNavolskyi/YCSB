@@ -7,11 +7,18 @@ import com.yahoo.ycsb.WorkloadException;
 import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.graph.*;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static com.yahoo.ycsb.generator.graph.Edge.EDGE_FIELDS_SET;
 import static com.yahoo.ycsb.generator.graph.Node.NODE_FIELDS_SET;
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
+import static java.io.File.separatorChar;
 
 /**
  * Workload class for graph databases.
@@ -29,7 +36,23 @@ public class GraphWorkload extends Workload {
   public static final String GRAPH_VALUE_IDENTIFIER = "value";
   public static final String GRAPH_START_IDENTIFIER = "start";
   public static final String GRAPH_END_IDENTIFIER = "end";
+  public static final String KEY_IDENTIFIER = "Key";
 
+  //TODO Property to set only generating graph or running benchmark
+
+  //TODO Two modes one for only generating data and one for loading that data iff present (else generates) and
+  // running a benchmark
+
+  //TODO Mechanism to retrieve data from files and insert them in the correct order (nodes and corresponding edges)
+
+  /**
+   * The name and default value of the property for the output directory for the files.
+   */
+  public static final String OUTPUT_DIRECTORY_PROPERTY = "outputDirectory";
+  public static final String OUTPUT_DIRECTORY_DEFAULT = System.getProperty("user.dir")
+      + separatorChar
+      + "benchmarkingData"
+      + separatorChar;
 
   private static final int RANDOM_NODE = 0;
   private static final int RANDOM_EDGE = 1;
@@ -47,6 +70,14 @@ public class GraphWorkload extends Workload {
     return nodeByteSize;
   }
 
+  public static int getKeyFromKeyString(String documentValue) {
+    String result = documentValue.replaceAll("-", "");
+    result = result.replaceAll(KEY_IDENTIFIER, "");
+    result = result.split("\\{")[0];
+
+    return Integer.valueOf(result);
+  }
+
   @Override
   public void init(Properties properties) throws WorkloadException {
     super.init(properties);
@@ -57,6 +88,42 @@ public class GraphWorkload extends Workload {
     nodeByteSize = Integer.parseInt(properties.getProperty(NODE_BYTE_SIZE_PROPERTY, NODE_BYTE_SIZE_DEFAULT));
     maxScanLength = Integer.parseInt(properties.getProperty(MAX_SCAN_LENGTH_PROPERTY,
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+
+    String outputDirectory = getOutputDirectory(properties);
+
+    try {
+      graphGenerator.setStartIds(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER),
+          getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getOutputDirectory(Properties properties) throws WorkloadException {
+    String outputDirectory = properties.getProperty(OUTPUT_DIRECTORY_PROPERTY, OUTPUT_DIRECTORY_DEFAULT);
+
+    if (outputDirectory.charAt(outputDirectory.length() - 1) != separatorChar) {
+      outputDirectory += separatorChar;
+    }
+
+    File directory = new File(outputDirectory);
+
+    if (!directory.exists() && !directory.mkdirs()) {
+      throw new WorkloadException("Could not read output directory for files with path: " + outputDirectory);
+    }
+
+    return outputDirectory;
+  }
+
+  private int getLastIdOfType(String outputDirectory, String typeIdentifier) throws IOException {
+    String fileName = getDatabaseFileName(outputDirectory, typeIdentifier);
+    List<String> strings = Files.readAllLines(Paths.get(fileName),
+        Charset.forName(new FileReader(fileName).getEncoding()));
+    return getKeyFromKeyString(strings.get(strings.size() - 1));
+  }
+
+  private String getDatabaseFileName(String outputDirectory, String table) {
+    return outputDirectory + table + ".json";
   }
 
   @Override

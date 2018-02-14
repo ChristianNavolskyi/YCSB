@@ -4,7 +4,6 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.WorkloadException;
 import junit.framework.Assert;
-import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import java.util.Properties;

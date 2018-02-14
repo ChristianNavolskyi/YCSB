@@ -26,7 +26,7 @@ public class Node extends GraphComponent {
     NODE_FIELDS_SET.add(VALUE_IDENTIFIER);
   }
 
-  private final String nodeIdentifier = "Node";
+  public static final String NODE_IDENTIFIER = "Node";
 
   Node(String label) {
     super(label, getAndIncrementIdCounter());
@@ -48,9 +48,13 @@ public class Node extends GraphComponent {
     return nodeIdCount++;
   }
 
+  public static void presetId(int lastNodeId) {
+    nodeIdCount = ++lastNodeId;
+  }
+
   @Override
   public String getComponentTypeIdentifier() {
-    return nodeIdentifier;
+    return NODE_IDENTIFIER;
   }
 
   @Override
@@ -59,7 +63,18 @@ public class Node extends GraphComponent {
 
     values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
     values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
-    values.put(GRAPH_VALUE_IDENTIFIER, new RandomByteIterator(GraphWorkload.getNodeByteSize()));
+    values.put(GRAPH_VALUE_IDENTIFIER, getStringByteIterator(GraphWorkload.getNodeByteSize()));
     return values;
+  }
+
+  private StringByteIterator getStringByteIterator(int nodeByteSize) {
+    RandomByteIterator randomByteIterator = new RandomByteIterator(nodeByteSize);
+    StringBuilder randomText = new StringBuilder();
+
+    for (int i = 0; i < nodeByteSize; i++) {
+      randomText.append(Character.toChars(randomByteIterator.nextByte()));
+    }
+
+    return new StringByteIterator(randomText.toString());
   }
 }

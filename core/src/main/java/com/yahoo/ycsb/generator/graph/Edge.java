@@ -26,7 +26,7 @@ public class Edge extends GraphComponent {
     EDGE_FIELDS_SET.add(END_IDENTIFIER);
   }
 
-  private final String edgeIdentifier = "Edge";
+  public static final String EDGE_IDENTIFIER = "Edge";
   private Node startNode;
   private Node endNode;
 
@@ -53,9 +53,13 @@ public class Edge extends GraphComponent {
     return edgeIdCount++;
   }
 
+  public static void presetId(int lastEdgeId) {
+    edgeIdCount = ++lastEdgeId;
+  }
+
   @Override
   public String getComponentTypeIdentifier() {
-    return edgeIdentifier;
+    return EDGE_IDENTIFIER;
   }
 
   @Override
