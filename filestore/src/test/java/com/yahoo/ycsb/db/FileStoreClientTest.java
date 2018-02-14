@@ -25,6 +25,8 @@ import org.junit.*;
 import java.io.File;
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
+
 public class FileStoreClientTest {
 
   private static final String RECORD_COUNT_IDENTIFIER = "recordcount";
@@ -56,7 +58,7 @@ public class FileStoreClientTest {
   private static final String ENABLE_PRETTY_PRINTING = "true";
 
   private static final String TABLE = "table";
-  private static final String KEY = "key";
+  private static final String KEY = "0";
   private static final String MAP_KEY = "mapKey";
   private static final String ITERATOR_VALUE = "test";
   private static final String OTHER_ITERATOR_VALUE = "other Value";
@@ -141,7 +143,7 @@ public class FileStoreClientTest {
     fileStoreClient.scan(TABLE, KEY, 1, set, vector);
     fileStoreClient.delete(TABLE, KEY);
 
-    Assert.assertEquals(vector.get(0).get(MAP_KEY).toString(), values.get(MAP_KEY).toString());
-    Assert.assertEquals(result.get(MAP_KEY).toString(), values.get(MAP_KEY).toString());
+    assertEquals(vector.get(0).get(MAP_KEY).toString(), values.get(MAP_KEY).toString());
+    assertEquals(result.get(MAP_KEY).toString(), values.get(MAP_KEY).toString());
   }
 }

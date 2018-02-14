@@ -2,8 +2,6 @@ package com.yahoo.ycsb.generator.graph;
 
 import com.yahoo.ycsb.generator.Generator;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -23,7 +21,12 @@ public class GraphGenerator extends Generator<Graph> {
   private final int testParameterCount;
   private final int productsPerOrder;
 
-  private int orderCount = 0;
+  private int productPerOrderCounter = 0;
+  private boolean shouldCreateProduct = true;
+  private boolean shouldCreateDate = true;
+  private boolean shouldCreateTests = true;
+  private int testCounter = 0;
+
   private Graph lastValue;
   private Node factory;
   private Node orders;
@@ -32,17 +35,9 @@ public class GraphGenerator extends Generator<Graph> {
   private Node product;
   private Node date;
   private Node tests;
-  private List<Node> testParameterNodes;
   private Node currentOrder;
-  private long count = 0;
-
 
   public GraphGenerator(Properties properties) {
-    testParameterNodes = new ArrayList<>();
-
-    Graph graph = new Graph();
-    graph.addEdge(new Edge(new Node("start"), new Node("end"), "edge"));
-
     testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
         String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));
     productsPerOrder = Integer.valueOf(properties.getProperty(PRODUCTS_PER_ORDER_KEY,
@@ -50,110 +45,73 @@ public class GraphGenerator extends Generator<Graph> {
 
     lastValue = null;
   }
-
+  
   @Override
   public Graph nextValue() {
-    System.out.println("Generating value number: " + count);
-    if (lastValue == null) {
-      lastValue = buildInitialGraph();
-    } else {
-      lastValue = buildSubGraph();
-    }
-
-    count++;
-
+    lastValue = createGraphNode();
     return lastValue;
   }
 
   @Override
   public Graph lastValue() {
-    return lastValue;
+    if (lastValue != null) {
+      return lastValue;
+    } else {
+      return nextValue();
+    }
   }
 
-  private Graph buildInitialGraph() {
+  private Graph createGraphNode() {
     Graph graph = new Graph();
 
-    createInitialNodes();
+    if (factory == null) {
+      this.factory = new Node("Factory");
+      graph.addNode(this.factory);
+    } else if (machine == null) {
+      this.machine = new Node("Machine");
+      graph.addNode(this.machine);
+      graph.addEdge(new Edge(factory, machine, "owns"));
+    } else if (orders == null) {
+      this.orders = new Node("Orders");
+      graph.addNode(this.orders);
+      graph.addEdge(new Edge(factory, orders, "receives"));
+    } else if (design == null) {
+      this.design = new Node("Design");
+      graph.addNode(this.design);
+      graph.addEdge(new Edge(factory, design, "builds"));
+    } else if (productPerOrderCounter == 0) {
+      currentOrder = new Node("order");
+      graph.addNode(currentOrder);
+      graph.addEdge(new Edge(orders, currentOrder, "ordered"));
+      productPerOrderCounter = productsPerOrder;
+    } else if (shouldCreateProduct) {
+      product = new Node("Product");
+      graph.addNode(product);
+      graph.addEdge(new Edge(machine, product, "produced"));
+      graph.addEdge(new Edge(currentOrder, product, "ordered"));
+    } else if (shouldCreateDate) {
+      date = new Node("Date");
+      graph.addNode(date);
+      graph.addEdge(new Edge(product, date, "producedAt"));
+    } else if (shouldCreateTests) {
+      tests = new Node("Tests");
+      graph.addNode(tests);
+      graph.addEdge(new Edge(product, tests, "tested"));
+    } else if (testCounter < testParameterCount) {
+      Node testParameterNode = new Node("TestParameterNr:" + testCounter);
+      graph.addNode(testParameterNode);
+      graph.addEdge(new Edge(tests, testParameterNode, "hasTested"));
+      testCounter++;
+    }
 
-    addInitialNodes(graph);
-    addInitialEdges(graph);
+    if (testCounter >= testParameterCount - 1) {
+      shouldCreateProduct = true;
+      shouldCreateDate = true;
+      shouldCreateTests = true;
+      testCounter = 0;
+      productPerOrderCounter--;
+    }
 
     return graph;
-  }
-
-  private void addInitialNodes(Graph graph) {
-    graph.addNode(this.factory);
-    graph.addNode(this.orders);
-    graph.addNode(this.machine);
-    graph.addNode(this.design);
-  }
-
-  private void addInitialEdges(Graph graph) {
-    graph.addEdge(new Edge(factory, machine, "owns"));
-    graph.addEdge(new Edge(factory, orders, "receives"));
-    graph.addEdge(new Edge(factory, design, "builds"));
-  }
-
-  private void createInitialNodes() {
-    this.factory = new Node("Factory");
-    this.orders = new Node("Orders");
-    this.machine = new Node("Machine");
-    this.design = new Node("Design");
-  }
-
-  private Graph buildSubGraph() {
-    Graph subGraph = new Graph();
-
-    if (orderCount == 0) {
-      createNewOrder(subGraph);
-      orderCount = productsPerOrder;
-    } else {
-      orderCount--;
-    }
-
-    createSubGraphNodes();
-
-    addProductNodes(subGraph);
-    addProductEdges(subGraph);
-
-    return subGraph;
-  }
-
-  private void createNewOrder(Graph subGraph) {
-    currentOrder = new Node("order");
-
-    subGraph.addNode(currentOrder);
-    subGraph.addEdge(new Edge(orders, currentOrder, "ordered"));
-  }
-
-  private void addProductNodes(Graph subGraph) {
-    subGraph.addNode(product);
-    subGraph.addNode(date);
-    subGraph.addNode(tests);
-
-    for (Node node : testParameterNodes) {
-      subGraph.addNode(node);
-    }
-  }
-
-  private void addProductEdges(Graph subGraph) {
-    subGraph.addEdge(new Edge(product, date, "producedAt"));
-    subGraph.addEdge(new Edge(product, tests, "tested"));
-    subGraph.addEdge(new Edge(currentOrder, product, "ordered"));
-    subGraph.addEdge(new Edge(machine, product, "produced"));
-
-    for (Node testParameterNode : testParameterNodes) {
-      subGraph.addEdge(new Edge(tests, testParameterNode, "hasTested"));
-    }
-  }
-
-  private void createSubGraphNodes() {
-    product = new Node("Product");
-    date = new Node("Date");
-    tests = new Node("Tests");
-
-    for (int i = 0; i < testParameterCount; i++) {
-      testParameterNodes.add(new Node("TestParameterNr:" + i));
-    }
   }
 }

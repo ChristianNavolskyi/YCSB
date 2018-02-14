@@ -1,36 +1,71 @@
 package com.yahoo.ycsb.generator.graph;
 
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static com.yahoo.ycsb.workloads.GraphWorkload.*;
+
 /**
  * Edge for the graph in the graph workload.
  */
-public class Edge {
+public class Edge extends GraphComponent {
+  public static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
+  private static final String START_IDENTIFIER = "start";
+  private static final String END_IDENTIFIER = "end";
   private static long edgeIdCount = 0;
-  private long id;
+
+  static {
+    EDGE_FIELDS_SET.add(ID_IDENTIFIER);
+    EDGE_FIELDS_SET.add(LABEL_IDENTIFIER);
+    EDGE_FIELDS_SET.add(START_IDENTIFIER);
+    EDGE_FIELDS_SET.add(END_IDENTIFIER);
+  }
+
+  private final String edgeIdentifier = "Edge";
   private Node startNode;
   private Node endNode;
 
-  private String label;
-
   Edge(Node startNode, Node endNode, String label) {
-    this.id = edgeIdCount++;
+    super(label, getAndIncrementIdCounter());
+
     this.startNode = startNode;
     this.endNode = endNode;
-    this.label = label;
   }
 
-  public long getId() {
-    return id;
+  private Edge(long id) {
+    super(id);
   }
 
-  public Node getStartNode() {
-    return startNode;
+  public static Edge recreateEdge(long id) {
+    return new Edge(id);
   }
 
-  public Node getEndNode() {
-    return endNode;
+  public static long getEdgeIdCount() {
+    return edgeIdCount;
   }
 
-  public String getLabel() {
-    return label;
+  private static synchronized long getAndIncrementIdCounter() {
+    return edgeIdCount++;
+  }
+
+  @Override
+  public String getComponentTypeIdentifier() {
+    return edgeIdentifier;
+  }
+
+  @Override
+  public Map<String, ByteIterator> getHashMap() {
+    HashMap<String, ByteIterator> values = new HashMap<>();
+
+    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
+    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
+    values.put(GRAPH_START_IDENTIFIER, new StringByteIterator(String.valueOf(startNode.getId())));
+    values.put(GRAPH_END_IDENTIFIER, new StringByteIterator(String.valueOf(endNode.getId())));
+    return values;
   }
 }
