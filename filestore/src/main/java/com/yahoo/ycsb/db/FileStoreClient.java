@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -17,21 +17,27 @@
 
 package com.yahoo.ycsb.db;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
+import com.yahoo.ycsb.generator.graph.GraphFileReader;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static com.yahoo.ycsb.generator.graph.GraphFileReader.*;
 import static com.yahoo.ycsb.workloads.GraphWorkload.*;
 import static java.io.File.separatorChar;
 
@@ -48,8 +54,9 @@ public class FileStoreClient extends DB {
   private static final String ENABLE_PRETTY_PRINTING = "enablePrettyPrinting";
   private static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
-      ByteIteratorAdapter());
-  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
+      GraphFileReader.ByteIteratorAdapter());
+  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {
+  }.getType();
 
   private Gson gson;
   private Map<String, FileWriter> fileWriterMap;
@@ -58,7 +65,7 @@ public class FileStoreClient extends DB {
   @Override
   public void init() throws DBException {
     Properties properties = getProperties();
-    outputDirectory = properties.getProperty(OUTPUT_DIRECTORY_PROPERTY, OUTPUT_DIRECTORY_DEFAULT);
+    outputDirectory = properties.getProperty(DATA_SET_DIRECTORY_PROPERTY, DATA_SET_DIRECTORY_DEFAULT);
 
     if (outputDirectory.charAt(outputDirectory.length() - 1) != separatorChar) {
       outputDirectory += separatorChar;
@@ -204,24 +211,6 @@ public class FileStoreClient extends DB {
     return Status.ERROR;
   }
 
-  private JsonReader getJsonReader(String key, String filename) throws IOException {
-    List<String> components = getLinesOfStringsFromFile(filename);
-    String desiredComponent = "";
-    String keyString = getKeyString(key);
-
-    for (String component : components) {
-      if (component.startsWith(keyString)) {
-        desiredComponent = component.substring(keyString.length());
-      }
-    }
-
-    return new JsonReader(new StringReader(desiredComponent));
-  }
-
-  private List<String> getLinesOfStringsFromFile(String filename) throws IOException {
-    FileReader fileReader = new FileReader(filename);
-    return Files.readAllLines(Paths.get(filename), Charset.forName(fileReader.getEncoding()));
-  }
 
   private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
     fileWriter.write(getKeyString(key));
@@ -245,10 +234,6 @@ public class FileStoreClient extends DB {
     }
 
     fileWriter.close();
-  }
-
-  private String getKeyString(String key) {
-    return KEY_IDENTIFIER + "-" + key + "-";
   }
 
   private boolean containsKey(String key, String table) throws IOException {
@@ -280,37 +265,5 @@ public class FileStoreClient extends DB {
 
   private String getDatabaseFileName(String table) {
     return outputDirectory + table + ".json";
-  }
-
-  private class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
-
-    private final String typeIdentifier = "type";
-    private final String propertyIdentifier = "properties";
-
-    @Override
-    public JsonElement serialize(ByteIterator byteIterator,
-                                 Type type,
-                                 JsonSerializationContext jsonSerializationContext) {
-      JsonObject result = new JsonObject();
-      result.add(typeIdentifier, new JsonPrimitive(byteIterator.getClass().getName()));
-      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator));
-
-      return result;
-    }
-
-    @Override
-    public ByteIterator deserialize(JsonElement jsonElement,
-                                    Type type,
-                                    JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-      JsonObject jsonObject = jsonElement.getAsJsonObject();
-      String typeString = jsonObject.get(typeIdentifier).getAsString();
-      JsonElement element = jsonObject.get(propertyIdentifier);
-
-      try {
-        return jsonDeserializationContext.deserialize(element, Class.forName(typeString));
-      } catch (ClassNotFoundException e) {
-        throw new JsonParseException("Could not find class " + typeString, e);
-      }
-    }
   }
 }
