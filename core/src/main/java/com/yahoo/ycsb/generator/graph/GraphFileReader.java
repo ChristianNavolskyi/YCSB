@@ -18,6 +18,7 @@
 package com.yahoo.ycsb.generator.graph;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.generator.Generator;
@@ -30,7 +31,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.yahoo.ycsb.workloads.GraphWorkload.KEY_IDENTIFIER;
 
@@ -39,21 +42,31 @@ import static com.yahoo.ycsb.workloads.GraphWorkload.KEY_IDENTIFIER;
  */
 public class GraphFileReader extends Generator<Graph> {
 
-  List<Graph> graphs;
-  int currentPosition = 0;
+  private List<Graph> graphs;
+  private int currentPosition = 0;
+
+  private GsonBuilder gsonBuilder;
+  private Gson gson;
+  private Type valueType;
 
   public static JsonReader getJsonReader(String key, String filename) throws IOException {
-    List<String> components = getLinesOfStringsFromFile(filename);
-    String desiredComponent = "";
-    String keyString = getKeyString(key);
+    return getJsonReaders(filename).get(Integer.parseInt(key));
+  }
 
-    for (String component : components) {
+  private static List<JsonReader> getJsonReaders(String filePath) throws IOException {
+    List<JsonReader> result = new ArrayList<>();
+    List<String> components = getLinesOfStringsFromFile(filePath);
+
+    for (int i = 0; i < components.size(); i++) {
+      String component = components.get(i);
+      String keyString = getKeyString(String.valueOf(i));
+
       if (component.startsWith(keyString)) {
-        desiredComponent = component.substring(keyString.length());
+        result.add(new JsonReader(new StringReader(component.substring(keyString.length()))));
       }
     }
 
-    return new JsonReader(new StringReader(desiredComponent));
+    return result;
   }
 
   public static List<String> getLinesOfStringsFromFile(String filename) throws IOException {
@@ -65,29 +78,105 @@ public class GraphFileReader extends Generator<Graph> {
     return KEY_IDENTIFIER + "-" + key + "-";
   }
 
-  public void init(String edgeFileContent, String nodeFileContent) {
+  public void init(String edgeFilePath, String nodeFilePath) {
+    gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
+    gson = gsonBuilder.create();
+
+    valueType = new TypeToken<Map<String, ByteIterator>>() {
+    }.getType();
+
     graphs = new ArrayList<>();
 
-    List<Edge> edgeList = parseEdges(edgeFileContent);
-    List<Node> nodeList = parseNodes(nodeFileContent);
+    Map<Long, Node> nodeMap = parseNodes(nodeFilePath);
+    List<Edge> edgeList = parseEdges(edgeFilePath, nodeMap);
 
-    graphs = combineComponentsToGraphs(nodeList, edgeList);
+    graphs = createSingleGraphs(edgeList);
   }
 
-  private List<Node> parseNodes(String nodeFileContent) {
+  private Map<Long, Node> parseNodes(String nodeFileContent) {
+    Map<Long, Node> result = new HashMap<>();
 
+    try {
+      List<JsonReader> jsonReaders = getJsonReaders(nodeFileContent);
 
-    return null;
+      for (JsonReader jsonReader : jsonReaders) {
+        Node node = getNodeFromJson(jsonReader);
+        result.put(node.getId(), node);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return result;
   }
 
-  //TODO parse file contents and insert in list
-  private List<Edge> parseEdges(String edgeFileContent) {
+  private Node getNodeFromJson(JsonReader jsonReader) {
+    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
 
-    return null;
+    return Node.recreateNode(values);
   }
 
-  private List<Graph> combineComponentsToGraphs(List<Node> nodeList, List<Edge> edgeList) {
-    return null;
+  private List<Edge> parseEdges(String edgeFileContent, Map<Long, Node> nodeMap) {
+    List<Edge> result = new ArrayList<>();
+
+    try {
+      List<JsonReader> jsonReaders = getJsonReaders(edgeFileContent);
+
+      for (JsonReader jsonReader : jsonReaders) {
+        result.add(getEdgeFromJson(jsonReader, nodeMap));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return result;
+  }
+
+  private Edge getEdgeFromJson(JsonReader jsonReader, Map<Long, Node> nodeMap) {
+    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
+
+    return Edge.recreateEdge(values, nodeMap);
+  }
+
+  private List<Graph> createSingleGraphs(List<Edge> edgeList) {
+    long lastNodeId = -1;
+    List<Graph> result = new ArrayList<>();
+
+    Node startNode = null;
+    Node endNode = null;
+    Graph graph;
+
+    for (int i = 0; i < edgeList.size(); i++) {
+      Edge edge = edgeList.get(i);
+      graph = new Graph();
+
+      if (startNode == null) {
+        startNode = edge.getStartNode();
+        endNode = edge.getEndNode();
+      }
+
+      if (startNode.getId() > lastNodeId) {
+        graph.addNode(startNode);
+        result.add(graph);
+        lastNodeId = startNode.getId();
+      }
+
+      if (endNode.getId() > lastNodeId) {
+        graph.addNode(endNode);
+        graph.addEdge(edge);
+
+        if (edgeList.size() > i + 1 && edgeList.get(i + 1).getId() <= lastNodeId) {
+          Edge nextEdge = edgeList.get(i + 1);
+          graph.addEdge(nextEdge);
+          i++;
+        }
+
+        result.add(graph);
+        lastNodeId = endNode.getId();
+      }
+    }
+
+    return result;
   }
 
   @Override
@@ -106,6 +195,9 @@ public class GraphFileReader extends Generator<Graph> {
     return null;
   }
 
+  /**
+   * Adapter class to convert ByteIterator into and back from Json.
+   */
   public static class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
 
     private final String typeIdentifier = "type";

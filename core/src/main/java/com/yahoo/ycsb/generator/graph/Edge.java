@@ -32,6 +32,7 @@ import static com.yahoo.ycsb.workloads.GraphWorkload.*;
  */
 public class Edge extends GraphComponent {
   public static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
+  public static final String EDGE_IDENTIFIER = "Edge";
   private static final String START_IDENTIFIER = "start";
   private static final String END_IDENTIFIER = "end";
   private static long edgeIdCount = 0;
@@ -43,13 +44,18 @@ public class Edge extends GraphComponent {
     EDGE_FIELDS_SET.add(END_IDENTIFIER);
   }
 
-  public static final String EDGE_IDENTIFIER = "Edge";
   private Node startNode;
   private Node endNode;
 
   Edge(Node startNode, Node endNode, String label) {
     super(label, getAndIncrementIdCounter());
 
+    this.startNode = startNode;
+    this.endNode = endNode;
+  }
+
+  private Edge(long id, String label, Node startNode, Node endNode) {
+    super(label, id);
     this.startNode = startNode;
     this.endNode = endNode;
   }
@@ -72,6 +78,30 @@ public class Edge extends GraphComponent {
 
   public static void presetId(int lastEdgeId) {
     edgeIdCount = ++lastEdgeId;
+  }
+
+  public static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
+    int id = Integer.valueOf(values.get(ID_IDENTIFIER).toString());
+    String label = values.get(LABEL_IDENTIFIER).toString();
+    int startNodeId = Integer.valueOf(values.get(START_IDENTIFIER).toString());
+    int endNodeId = Integer.valueOf(values.get(END_IDENTIFIER).toString());
+
+    Node startNode = nodeMap.get(startNodeId);
+    Node endNode = nodeMap.get(endNodeId);
+
+    if (startNode != null && endNode != null) {
+      return new Edge(id, label, startNode, endNode);
+    }
+
+    return null;
+  }
+
+  public Node getStartNode() {
+    return startNode;
+  }
+
+  public Node getEndNode() {
+    return endNode;
   }
 
   @Override

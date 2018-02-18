@@ -34,6 +34,7 @@ import static com.yahoo.ycsb.workloads.GraphWorkload.*;
  */
 public class Node extends GraphComponent {
   public static final Set<String> NODE_FIELDS_SET = new HashSet<>();
+  public static final String NODE_IDENTIFIER = "Node";
   private static final String VALUE_IDENTIFIER = "value";
   private static long nodeIdCount = 0;
 
@@ -43,14 +44,28 @@ public class Node extends GraphComponent {
     NODE_FIELDS_SET.add(VALUE_IDENTIFIER);
   }
 
-  public static final String NODE_IDENTIFIER = "Node";
+  private StringByteIterator value = new StringByteIterator("");
 
   Node(String label) {
     super(label, getAndIncrementIdCounter());
   }
 
+  private Node(String label, long id) {
+    super(label, id);
+  }
+
   private Node(long id) {
     super(id);
+  }
+
+  public static Node recreateNode(Map<String, ByteIterator> values) {
+    int id = Integer.valueOf(values.get(ID_IDENTIFIER).toString());
+    String label = values.get(LABEL_IDENTIFIER).toString();
+
+    Node node = new Node(label, id);
+    node.value = (StringByteIterator) values.get(VALUE_IDENTIFIER);
+
+    return node;
   }
 
   public static Node recreateNode(long id) {
@@ -78,9 +93,13 @@ public class Node extends GraphComponent {
   public Map<String, ByteIterator> getHashMap() {
     java.util.HashMap<String, ByteIterator> values = new HashMap<>();
 
+    if (value.toString().equals("")) {
+      value = getStringByteIterator(GraphWorkload.getNodeByteSize());
+    }
+
     values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
     values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
-    values.put(GRAPH_VALUE_IDENTIFIER, getStringByteIterator(GraphWorkload.getNodeByteSize()));
+    values.put(GRAPH_VALUE_IDENTIFIER, value);
     return values;
   }
 

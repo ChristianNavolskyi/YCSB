@@ -166,6 +166,8 @@ public class GraphWorkload extends Workload {
       success = insertGraphComponents(db, graph);
 
       return success;
+    default:
+      return false;
     }
     return true;
   }
@@ -231,6 +233,8 @@ public class GraphWorkload extends Workload {
         return false;
       }
       break;
+    default:
+      return false;
     }
     return true;
   }
@@ -453,7 +457,7 @@ public class GraphWorkload extends Workload {
   }
 
   private enum Mode {
-// TODO used everywhere correctly?
+    // TODO used everywhere correctly?
     RUN_BENCHMARK(true, true),
     GENERATE_DATA_AND_RUN_BENCHMARK(true, false),
     DO_NOTHING(false, true),

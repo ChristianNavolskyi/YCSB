@@ -47,16 +47,9 @@ import static java.io.File.separatorChar;
  */
 public class FileStoreClient extends DB {
 
-  /**
-   * The property name to enable pretty printing of the json in created files.
-   * This will increase the size of the files substantially!
-   */
-  private static final String ENABLE_PRETTY_PRINTING = "enablePrettyPrinting";
-  private static final String ENABLE_PRETTY_PRINTING_DEFAULT = "false";
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
       GraphFileReader.ByteIteratorAdapter());
-  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {
-  }.getType();
+  private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
   private Gson gson;
   private Map<String, FileWriter> fileWriterMap;
@@ -75,10 +68,6 @@ public class FileStoreClient extends DB {
 
     if (!directory.exists() && !directory.mkdirs()) {
       throw new DBException("Could not create output directory for files with path: " + outputDirectory);
-    }
-
-    if (!properties.getProperty(ENABLE_PRETTY_PRINTING, ENABLE_PRETTY_PRINTING_DEFAULT).equals("false")) {
-      gsonBuilder.setPrettyPrinting();
     }
 
     gson = gsonBuilder.create();
