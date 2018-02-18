@@ -49,6 +49,21 @@ public class GraphFileReader extends Generator<Graph> {
   private Gson gson;
   private Type valueType;
 
+  public GraphFileReader(String edgeFilePath, String nodeFilePath) {
+    gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
+    gson = gsonBuilder.create();
+
+    valueType = new TypeToken<Map<String, ByteIterator>>() {
+    }.getType();
+
+    graphs = new ArrayList<>();
+
+    Map<Long, Node> nodeMap = parseNodes(nodeFilePath);
+    List<Edge> edgeList = parseEdges(edgeFilePath, nodeMap);
+
+    graphs = createSingleGraphs(edgeList);
+  }
+
   public static JsonReader getJsonReader(String key, String filename) throws IOException {
     return getJsonReaders(filename).get(Integer.parseInt(key));
   }
@@ -76,21 +91,6 @@ public class GraphFileReader extends Generator<Graph> {
 
   public static String getKeyString(String key) {
     return KEY_IDENTIFIER + "-" + key + "-";
-  }
-
-  public void init(String edgeFilePath, String nodeFilePath) {
-    gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
-    gson = gsonBuilder.create();
-
-    valueType = new TypeToken<Map<String, ByteIterator>>() {
-    }.getType();
-
-    graphs = new ArrayList<>();
-
-    Map<Long, Node> nodeMap = parseNodes(nodeFilePath);
-    List<Edge> edgeList = parseEdges(edgeFilePath, nodeMap);
-
-    graphs = createSingleGraphs(edgeList);
   }
 
   private Map<Long, Node> parseNodes(String nodeFileContent) {
