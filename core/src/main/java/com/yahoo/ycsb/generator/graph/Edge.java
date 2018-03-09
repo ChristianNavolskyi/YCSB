@@ -25,8 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static com.yahoo.ycsb.workloads.GraphWorkload.*;
-
 /**
  * Edge for the graph in the graph workload.
  */
@@ -47,7 +45,7 @@ public class Edge extends GraphComponent {
   private Node startNode;
   private Node endNode;
 
-  Edge(Node startNode, Node endNode, String label) {
+  Edge(String label, Node startNode, Node endNode) {
     super(label, getAndIncrementIdCounter());
 
     this.startNode = startNode;
@@ -68,6 +66,35 @@ public class Edge extends GraphComponent {
     return new Edge(id);
   }
 
+  public static Edge recreateEdge(Map<String, ByteIterator> values) {
+    long id = Long.getLong(values.get(ID_IDENTIFIER).toString());
+    String label = values.get(LABEL_IDENTIFIER).toString();
+
+    int startNodeId = Integer.getInteger(values.get(START_IDENTIFIER).toString());
+    int endNodeId = Integer.getInteger(values.get(END_IDENTIFIER).toString());
+
+    Node startNode = Node.recreateNode(startNodeId);
+    Node endNode = Node.recreateNode(endNodeId);
+
+    return new Edge(id, label, startNode, endNode);
+  }
+
+  public static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
+    long id = Long.valueOf(values.get(ID_IDENTIFIER).toString());
+    String label = values.get(LABEL_IDENTIFIER).toString();
+    long startNodeId = Integer.valueOf(values.get(START_IDENTIFIER).toString());
+    long endNodeId = Integer.valueOf(values.get(END_IDENTIFIER).toString());
+
+    Node startNode = nodeMap.get(startNodeId);
+    Node endNode = nodeMap.get(endNodeId);
+
+    if (startNode != null && endNode != null) {
+      return new Edge(id, label, startNode, endNode);
+    }
+
+    return null;
+  }
+
   public static long getEdgeIdCount() {
     return edgeIdCount;
   }
@@ -78,22 +105,6 @@ public class Edge extends GraphComponent {
 
   public static void presetId(int lastEdgeId) {
     edgeIdCount = ++lastEdgeId;
-  }
-
-  public static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
-    int id = Integer.valueOf(values.get(ID_IDENTIFIER).toString());
-    String label = values.get(LABEL_IDENTIFIER).toString();
-    int startNodeId = Integer.valueOf(values.get(START_IDENTIFIER).toString());
-    int endNodeId = Integer.valueOf(values.get(END_IDENTIFIER).toString());
-
-    Node startNode = nodeMap.get(startNodeId);
-    Node endNode = nodeMap.get(endNodeId);
-
-    if (startNode != null && endNode != null) {
-      return new Edge(id, label, startNode, endNode);
-    }
-
-    return null;
   }
 
   public Node getStartNode() {
@@ -113,10 +124,15 @@ public class Edge extends GraphComponent {
   public Map<String, ByteIterator> getHashMap() {
     HashMap<String, ByteIterator> values = new HashMap<>();
 
-    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
-    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
-    values.put(GRAPH_START_IDENTIFIER, new StringByteIterator(String.valueOf(startNode.getId())));
-    values.put(GRAPH_END_IDENTIFIER, new StringByteIterator(String.valueOf(endNode.getId())));
+    values.put(ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
+    values.put(LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
+    values.put(START_IDENTIFIER, new StringByteIterator(String.valueOf(startNode.getId())));
+    values.put(END_IDENTIFIER, new StringByteIterator(String.valueOf(endNode.getId())));
     return values;
+  }
+
+  @Override
+  public Set<String> getFieldSet() {
+    return EDGE_FIELDS_SET;
   }
 }

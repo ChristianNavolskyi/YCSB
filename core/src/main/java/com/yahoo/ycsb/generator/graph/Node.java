@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static com.yahoo.ycsb.workloads.GraphWorkload.*;
-
 /**
  * Nodes for the graph in the graph workload.
  */
@@ -97,10 +95,15 @@ public class Node extends GraphComponent {
       value = getStringByteIterator(GraphWorkload.getNodeByteSize());
     }
 
-    values.put(GRAPH_ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
-    values.put(GRAPH_LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
-    values.put(GRAPH_VALUE_IDENTIFIER, value);
+    values.put(ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
+    values.put(LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
+    values.put(VALUE_IDENTIFIER, value);
     return values;
+  }
+
+  @Override
+  public Set<String> getFieldSet() {
+    return NODE_FIELDS_SET;
   }
 
   private StringByteIterator getStringByteIterator(int nodeByteSize) {

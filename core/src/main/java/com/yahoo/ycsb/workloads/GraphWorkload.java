@@ -17,24 +17,31 @@
 
 package com.yahoo.ycsb.workloads;
 
-import com.yahoo.ycsb.*;
-import com.yahoo.ycsb.generator.DiscreteGenerator;
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.Workload;
+import com.yahoo.ycsb.WorkloadException;
+import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.OperationOrderGenerator;
+import com.yahoo.ycsb.generator.OperationOrderRecreator;
 import com.yahoo.ycsb.generator.graph.*;
-import org.apache.htrace.core.Tracer;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static com.yahoo.ycsb.generator.graph.Edge.EDGE_FIELDS_SET;
+import static com.yahoo.ycsb.generator.graph.GraphDataRecorder.KEY_IDENTIFIER;
 import static com.yahoo.ycsb.generator.graph.Node.NODE_FIELDS_SET;
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
 import static java.io.File.separatorChar;
 
 /**
  * Workload class for graph databases.
+ * This workload uses FileStoreClient from the filestore project.
  * <p>
  * Every node will have a size of 500 Bytes by default.
  * This can be changed via the {@value NODE_BYTE_SIZE_PROPERTY} parameter.
@@ -44,50 +51,33 @@ import static java.io.File.separatorChar;
  */
 public class GraphWorkload extends Workload {
 
-  public static final String GRAPH_ID_IDENTIFIER = "id";
-  public static final String GRAPH_LABEL_IDENTIFIER = "label";
-  public static final String GRAPH_VALUE_IDENTIFIER = "value";
-  public static final String GRAPH_START_IDENTIFIER = "start";
-  public static final String GRAPH_END_IDENTIFIER = "end";
-  public static final String KEY_IDENTIFIER = "Key";
-
+  //TODO write tests
   //TODO Mechanism to retrieve data from files and insert them in the correct order (nodes and corresponding edges)
 
-  /**
-   * The name and default value of the property for the output directory for the files.
-   */
-  public static final String DATA_SET_DIRECTORY_PROPERTY = "dataSetDirectory";
-  public static final String DATA_SET_DIRECTORY_DEFAULT = System.getProperty("user.dir")
+  private static final String DATA_SET_DIRECTORY_PROPERTY = "dataSetDirectory";
+  private static final String DATA_SET_DIRECTORY_DEFAULT = System.getProperty("user.dir")
       + separatorChar
       + "benchmarkingData"
       + separatorChar;
-  public static final String BIN_BINDINGS_PROPERTIES = "/../bin/bindings.properties";
-  private static final int RANDOM_NODE = 0;
-  private static final int RANDOM_EDGE = 1;
+
   private static final String NODE_BYTE_SIZE_PROPERTY = "nodeByteSize";
   private static final String NODE_BYTE_SIZE_DEFAULT = "500";
-  private static final String FILESTORE_NAME = "filestore";
-  private static int nodeByteSize;
+  private static int nodeByteSize = Integer.parseInt(NODE_BYTE_SIZE_DEFAULT);
 
-  private Random random = new Random();
-  private GraphGenerator graphGenerator;
-  private GraphFileReader graphFileReader;
-  private DiscreteGenerator discreteGenerator;
   private int maxScanLength;
-  private Mode mode;
-  private DB fileStoreDb;
+  private GraphDataGenerator graphDataGenerator;
+  private Generator<String> orderGenerator;
+  private RandomGraphComponentChooser randomGraphComponentChooser;
 
   // Modes:
-  // 4 - doNothing                                  - db == filestore && dataSetPresent && (load || run)
-  // 1 - generate only dataSet                      - db == filestore && !dataSetPresent && (load || run)
-  // 2 - generate dataSet and run benchmark         - db != filestore && !dataSetPresent && (load || run)
-  // 3 - only run benchmark with supplied dataSet   - db != filestore && dataSetPresent && (load || run)
+  // 2 - generate dataSet and run benchmark         - !dataSetPresent
+  // 3 - only run benchmark with supplied dataSet   - dataSetPresent
 
   public static int getNodeByteSize() {
     return nodeByteSize;
   }
 
-  public static int getKeyFromKeyString(String documentValue) {
+  private static int getKeyFromKeyString(String documentValue) {
     String result = documentValue.replaceAll("-", "");
     result = result.replaceAll(KEY_IDENTIFIER, "");
     result = result.split("\\{")[0];
@@ -101,79 +91,47 @@ public class GraphWorkload extends Workload {
   public void init(Properties properties) throws WorkloadException {
     super.init(properties);
 
-    graphGenerator = new GraphGenerator(properties);
-    discreteGenerator = CoreWorkload.createOperationGenerator(properties);
-
     nodeByteSize = Integer.parseInt(properties.getProperty(NODE_BYTE_SIZE_PROPERTY, NODE_BYTE_SIZE_DEFAULT));
     maxScanLength = Integer.parseInt(properties.getProperty(MAX_SCAN_LENGTH_PROPERTY,
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 
-    boolean shouldRunWorkload = shouldRunWorkloadOrJustGenerateDataSet(properties);
-
     String outputDirectory = getOutputDirectory(properties);
     boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(outputDirectory);
 
-    mode = Mode.getMode(shouldRunWorkload, benchmarkingDataPresent);
+    Mode mode = Mode.getMode(benchmarkingDataPresent);
 
     System.out.println("Running graph workload in " + mode.toString() + " mode");
 
-    if (mode == Mode.RUN_BENCHMARK) {
-      graphFileReader = new GraphFileReader(getDatabaseFileName(outputDirectory, Edge.EDGE_IDENTIFIER),
-          getDatabaseFileName(outputDirectory, Node.NODE_IDENTIFIER));
+    //TODO distinguish between load and run and set values accordingly.
+    try {
+      if (mode == Mode.RUN_BENCHMARK) {
+        graphDataGenerator = new GraphDataRecreator(outputDirectory);
 
-      try {
-        graphGenerator.setStartIds(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER),
-            getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
-      } catch (IOException e) {
-        e.printStackTrace();
+        randomGraphComponentChooser = new RandomGraphComponentRecreator(outputDirectory, graphDataGenerator);
+
+        orderGenerator = new OperationOrderRecreator(outputDirectory);
       }
-    }
 
-    if (mode == Mode.GENERATE_DATA_AND_RUN_BENCHMARK) {
-      initiateFileStoreDb(properties);
+      if (mode == Mode.GENERATE_DATA_AND_RUN_BENCHMARK) {
+        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
+
+        randomGraphComponentChooser = new RandomGraphComponentGenerator(outputDirectory, graphDataGenerator);
+
+        orderGenerator = new OperationOrderGenerator(outputDirectory, createOperationGenerator(properties));
+
+        Node.presetId(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER));
+        Edge.presetId(getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
-  @Override
-  public void cleanup() throws WorkloadException {
-    if (fileStoreDb != null) {
-      try {
-        fileStoreDb.cleanup();
-      } catch (DBException e) {
-        e.printStackTrace();
-      }
-    }
-    super.cleanup();
-  }
-
-  //TODO Load initial Data into DB
   @Override
   public boolean doInsert(DB db, Object threadState) {
-    Graph graph;
-    boolean success;
+    Graph graph = graphDataGenerator.nextValue();
 
-    switch (mode) {
-    case DO_NOTHING:
-      success = true;
-      break;
-    case RUN_BENCHMARK:
-      graph = graphFileReader.nextValue();
-      success = insertGraphComponents(db, graph);
-      break;
-    case GENERATE_DATA_AND_RUN_BENCHMARK:
-      graph = graphGenerator.nextValue();
-      success = insertGraphComponents(fileStoreDb, graph);
-      success = success && insertGraphComponents(db, graph);
-      break;
-    case GENERATE_DATA:
-      graph = graphGenerator.nextValue();
-      success = insertGraphComponents(db, graph);
-      break;
-    default:
-      return false;
-    }
-
-    return success;
+    return insertGraphComponents(db, graph);
   }
 
   private boolean insertGraphComponents(DB db, Graph graph) {
@@ -193,46 +151,18 @@ public class GraphWorkload extends Workload {
     return true;
   }
 
-  // TODO Iff operations present run from these else create, save and run.
   @Override
   public boolean doTransaction(DB db, Object threadState) {
-    String nextOperation;
-    boolean success;
+    String nextOperation = orderGenerator.nextValue();
 
-    switch (mode) {
-    case DO_NOTHING:
-      success = true;
-      break;
-    case GENERATE_DATA:
-      nextOperation = discreteGenerator.nextValue();
-      if (nextOperation == null) {
-        return false;
-      }
-
-      success = executeOperation(nextOperation, db);
-      break;
-    case RUN_BENCHMARK:
-      //TODO implement operationchooser
-
-      success = false;
-      break;
-    case GENERATE_DATA_AND_RUN_BENCHMARK:
-      nextOperation = discreteGenerator.nextValue();
-
-      if (nextOperation == null) {
-        return false;
-      }
-
-      success = executeOperation(nextOperation, fileStoreDb);
-      success = success && executeOperation(nextOperation, db);
-      break;
-    default:
-      return false;
-    }
-    return success;
+    return executeOperation(nextOperation, db, graphDataGenerator);
   }
 
-  private boolean executeOperation(String operation, DB db) {
+  private boolean executeOperation(String operation, DB db, Generator<Graph> generator) {
+    if (operation == null) {
+      return false;
+    }
+
     switch (operation) {
     case READ_IDENTIFIER:
       System.out.println("Reading");
@@ -244,16 +174,15 @@ public class GraphWorkload extends Workload {
       break;
     case INSERT_IDENTIFIER:
       System.out.println("Inserting");
-      doTransactionInsert(db);
+      doTransactionInsert(db, generator);
       break;
     case SCAN_IDENTIFIER:
       System.out.println("Scanning");
       doTransactionScan(db);
       break;
     case READMODIFYWRITE_IDENTIFIER:
-      System.out.println("Reading Modifying and Writing");
+      System.out.println("ReadingModifyingWriting");
       doTransactionReadModifyWrite(db);
-      break;
     default:
       return false;
     }
@@ -261,10 +190,8 @@ public class GraphWorkload extends Workload {
     return true;
   }
 
-  //TODO save in OperationsFile iff needed
-  //TODO use graph from corresponding generator
-  private void doTransactionInsert(DB db) {
-    Graph graph = graphGenerator.nextValue();
+  private void doTransactionInsert(DB db, Generator<Graph> generator) {
+    Graph graph = generator.nextValue();
 
     System.out.println("Inserting Nodes");
     for (Node node : graph.getNodes()) {
@@ -277,65 +204,62 @@ public class GraphWorkload extends Workload {
     }
   }
 
-  //TODO save in OperationsFile iff needed
-  //TODO remove randomness
   private void doTransactionRead(DB db) {
-    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
+    GraphComponent graphComponent = randomGraphComponentChooser.choose();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
-    db.read(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
-        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
-        randomGraphComponentChooser.fieldSet,
-        map
-    );
+    if (graphComponent != null) {
+      db.read(graphComponent.getComponentTypeIdentifier(),
+          String.valueOf(graphComponent.getId()),
+          graphComponent.getFieldSet(),
+          map
+      );
+    }
 
     printMap(map);
   }
 
-  //TODO save in OperationsFile iff needed
-  //TODO remove randomness
   private void doTransactionUpdate(DB db) {
-    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
+    GraphComponent graphComponent = randomGraphComponentChooser.choose();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
-    db.read(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
-        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
-        randomGraphComponentChooser.fieldSet,
-        map);
+    if (graphComponent != null) {
+      db.read(graphComponent.getComponentTypeIdentifier(),
+          String.valueOf(graphComponent.getId()),
+          graphComponent.getFieldSet(),
+          map);
 
-    db.update(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
-        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
-        map);
+      db.update(graphComponent.getComponentTypeIdentifier(),
+          String.valueOf(graphComponent.getId()),
+          map);
+    }
 
     printMap(map);
   }
 
-  //TODO save in OperationsFile iff needed
-  //TODO remove randomness
   private void doTransactionScan(DB db) {
-    RandomGraphComponentChooser randomGraphComponentChooser = new RandomGraphComponentChooser();
+    GraphComponent graphComponent = randomGraphComponentChooser.choose();
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
-    db.scan(randomGraphComponentChooser.graphComponent.getComponentTypeIdentifier(),
-        String.valueOf(randomGraphComponentChooser.graphComponent.getId()),
-        maxScanLength,
-        randomGraphComponentChooser.fieldSet,
-        hashMaps
-    );
+    if (graphComponent != null) {
+      db.scan(graphComponent.getComponentTypeIdentifier(),
+          String.valueOf(graphComponent.getId()),
+          maxScanLength,
+          graphComponent.getFieldSet(),
+          hashMaps
+      );
+    }
 
     for (HashMap<String, ByteIterator> hashMap : hashMaps) {
       printMap(hashMap);
     }
-
   }
 
-  //TODO save in OperationsFile iff needed
-  //TODO remove randomness
   private void doTransactionReadModifyWrite(DB db) {
-    Node node = chooseRandomNode();
+    Node node = randomGraphComponentChooser.chooseRandomNode();
     Map<String, ByteIterator> values = new HashMap<>();
 
     db.read(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), NODE_FIELDS_SET, values);
@@ -351,12 +275,7 @@ public class GraphWorkload extends Workload {
     db.update(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values);
   }
 
-  private boolean shouldRunWorkloadOrJustGenerateDataSet(Properties properties) {
-    String db = properties.getProperty(Client.DB_PROPERTY);
-
-    return db != null && !isDbFileStoreClient(db);
-  }
-
+  //TODO check all files (order of operations)
   private boolean checkBenchmarkingDataPresent(String outputDirectory) {
     String nodeFileName = getDatabaseFileName(outputDirectory, Node.NODE_IDENTIFIER);
     String edgeFileName = getDatabaseFileName(outputDirectory, Edge.EDGE_IDENTIFIER);
@@ -382,35 +301,6 @@ public class GraphWorkload extends Workload {
     }
   }
 
-  private void initiateFileStoreDb(Properties properties) {
-    try {
-      fileStoreDb = DBFactory.newDB(getBindingsProperties().getProperty(FILESTORE_NAME), properties, Tracer
-          .curThreadTracer());
-    } catch (UnknownDBException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private boolean isDbFileStoreClient(String db) {
-    Properties properties = getBindingsProperties();
-
-    return properties.keySet().contains(db) && db.equals(FILESTORE_NAME);
-  }
-
-  private Properties getBindingsProperties() {
-    File propertiesFile = new File(System.getProperty("user.dir") + BIN_BINDINGS_PROPERTIES);
-
-    Properties properties = new Properties();
-
-    try {
-      InputStream inputStream = new FileInputStream(propertiesFile);
-      properties.load(inputStream);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    return properties;
-  }
 
   private String getOutputDirectory(Properties properties) throws WorkloadException {
     String outputDirectory = properties.getProperty(DATA_SET_DIRECTORY_PROPERTY, DATA_SET_DIRECTORY_DEFAULT);
@@ -445,26 +335,6 @@ public class GraphWorkload extends Workload {
     }
   }
 
-  private Edge chooseRandomEdge() {
-    int maxBound = (int) Edge.getEdgeIdCount() == 0 ? 1 : (int) Edge.getEdgeIdCount();
-
-    int id = random.nextInt(maxBound);
-
-    return Edge.recreateEdge(id);
-  }
-
-  private Node chooseRandomNode() {
-    int maxBound = (int) Node.getNodeIdCount() == 0 ? 1 : (int) Node.getNodeIdCount();
-
-    int id = random.nextInt(maxBound);
-
-    return Node.recreateNode(id);
-  }
-
-  private int randomNodeOrEdge() {
-    return random.nextInt(2);
-  }
-
   private boolean insertNode(DB db, Node node) {
     Map<String, ByteIterator> values = node.getHashMap();
 
@@ -484,51 +354,14 @@ public class GraphWorkload extends Workload {
   }
 
   private enum Mode {
-    // TODO used everywhere correctly?
     RUN_BENCHMARK,
-    GENERATE_DATA_AND_RUN_BENCHMARK,
-    DO_NOTHING,
-    GENERATE_DATA;
+    GENERATE_DATA_AND_RUN_BENCHMARK;
 
-    static Mode getMode(boolean runBenchmark, boolean dataSetPresent) {
-      if (runBenchmark) {
-        if (dataSetPresent) {
-          return RUN_BENCHMARK;
-        } else {
-          return GENERATE_DATA_AND_RUN_BENCHMARK;
-        }
+    static Mode getMode(boolean dataSetPresent) {
+      if (dataSetPresent) {
+        return RUN_BENCHMARK;
       } else {
-        if (dataSetPresent) {
-          return DO_NOTHING;
-        } else {
-          return GENERATE_DATA;
-        }
-      }
-    }
-  }
-
-  private class RandomGraphComponentChooser {
-    private GraphComponent graphComponent;
-    private Set<String> fieldSet;
-
-    RandomGraphComponentChooser() {
-      this.fieldSet = new HashSet<>();
-
-      choose();
-    }
-
-    private void choose() {
-      switch (randomNodeOrEdge()) {
-      case RANDOM_NODE:
-        graphComponent = chooseRandomNode();
-        fieldSet = NODE_FIELDS_SET;
-        break;
-      case RANDOM_EDGE:
-        graphComponent = chooseRandomEdge();
-        fieldSet = EDGE_FIELDS_SET;
-        break;
-      default:
-        break;
+        return GENERATE_DATA_AND_RUN_BENCHMARK;
       }
     }
   }
