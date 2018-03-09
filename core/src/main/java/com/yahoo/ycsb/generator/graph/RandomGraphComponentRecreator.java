@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -17,11 +17,11 @@
 
 package com.yahoo.ycsb.generator.graph;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ListIterator;
 
 /**
@@ -37,16 +37,17 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentChooser {
 
   public RandomGraphComponentRecreator(String inputDirectory,
                                        GraphDataGenerator graphDataGenerator) throws IOException {
-    super(graphDataGenerator);
+    super(inputDirectory, graphDataGenerator);
 
-    nodeIterator = getIterator(inputDirectory + NODE_FILE_NAME);
-    edgeIterator = getIterator(inputDirectory + EDGE_FILE_NAME);
-    componentIterator = getIterator(inputDirectory + COMPONENT_FILE_NAME);
+    nodeIterator = getIterator(getNodeFile());
+    edgeIterator = getIterator(getEdgeFile());
+    componentIterator = getIterator(getComponentFile());
   }
 
-  private ListIterator<String> getIterator(String edgeFile) throws IOException {
-    return Files.readAllLines(Paths.get(edgeFile), Charset.forName(new FileReader(edgeFile)
-        .getEncoding())).listIterator();
+  @Override
+  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) {
+    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists() &&
+        componentFile.exists();
   }
 
   @Override
@@ -64,9 +65,14 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentChooser {
     return (int) getNextValue(componentIterator);
   }
 
+  private ListIterator<String> getIterator(File file) throws IOException {
+    return Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file)
+        .getEncoding())).listIterator();
+  }
+
   private long getNextValue(ListIterator<String> iterator) {
     if (iterator.hasNext()) {
-      return Long.getLong(iterator.next());
+      return Long.parseLong(iterator.next());
     }
 
     return 0;

@@ -29,8 +29,8 @@ import java.util.Set;
  * Edge for the graph in the graph workload.
  */
 public class Edge extends GraphComponent {
-  public static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
   public static final String EDGE_IDENTIFIER = "Edge";
+  private static final Set<String> EDGE_FIELDS_SET = new HashSet<>();
   private static final String START_IDENTIFIER = "start";
   private static final String END_IDENTIFIER = "end";
   private static long edgeIdCount = 0;
@@ -64,19 +64,6 @@ public class Edge extends GraphComponent {
 
   public static Edge recreateEdge(long id) {
     return new Edge(id);
-  }
-
-  public static Edge recreateEdge(Map<String, ByteIterator> values) {
-    long id = Long.getLong(values.get(ID_IDENTIFIER).toString());
-    String label = values.get(LABEL_IDENTIFIER).toString();
-
-    int startNodeId = Integer.getInteger(values.get(START_IDENTIFIER).toString());
-    int endNodeId = Integer.getInteger(values.get(END_IDENTIFIER).toString());
-
-    Node startNode = Node.recreateNode(startNodeId);
-    Node endNode = Node.recreateNode(endNodeId);
-
-    return new Edge(id, label, startNode, endNode);
   }
 
   public static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
