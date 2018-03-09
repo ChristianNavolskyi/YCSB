@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -17,6 +17,7 @@
 
 package com.yahoo.ycsb.generator.graph;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
@@ -33,13 +34,19 @@ public class RandomGraphComponentGenerator extends RandomGraphComponentChooser {
 
   public RandomGraphComponentGenerator(String outputDirectory,
                                        GraphDataGenerator graphDataGenerator) throws IOException {
-    super(graphDataGenerator);
+    super(outputDirectory, graphDataGenerator);
 
-    nodeFileWriter = new FileWriter(outputDirectory + NODE_FILE_NAME);
-    edgeFileWriter = new FileWriter(outputDirectory + EDGE_FILE_NAME);
-    componentFileWriter = new FileWriter(outputDirectory + COMPONENT_FILE_NAME);
+    nodeFileWriter = new FileWriter(getNodeFile());
+    edgeFileWriter = new FileWriter(getEdgeFile());
+    componentFileWriter = new FileWriter(getComponentFile());
 
     this.random = new Random();
+  }
+
+  @Override
+  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException {
+    return (directoryFile.exists() || directoryFile.mkdirs()) && nodeFile.createNewFile() && edgeFile.createNewFile()
+        && componentFile.createNewFile();
   }
 
   @Override

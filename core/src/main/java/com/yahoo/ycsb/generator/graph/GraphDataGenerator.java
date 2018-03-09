@@ -84,11 +84,11 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     return nodeFile;
   }
 
-  public final Node getNode(long key) {
+  public Node getNode(long key) {
     return nodeMap.get(key);
   }
 
-  public final Edge getEdge(long key) {
+  public Edge getEdge(long key) {
     return edgeMap.get(key);
   }
 

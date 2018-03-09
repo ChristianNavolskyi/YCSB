@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -17,22 +17,44 @@
 
 package com.yahoo.ycsb.generator.graph;
 
+import java.io.File;
+import java.io.IOException;
+
 /**
  * Abstract class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
  */
 public abstract class RandomGraphComponentChooser {
 
-  static final String NODE_FILE_NAME = "nodeId.txt";
-  static final String EDGE_FILE_NAME = "edgeId.txt";
-  static final String COMPONENT_FILE_NAME = "randomComponent.txt";
-
   private static final int NODE = 0;
   private static final int EDGE = 1;
-
+  private final File nodeFile;
+  private final File edgeFile;
+  private final File componentFile;
   private GraphDataGenerator graphDataGenerator;
 
-  RandomGraphComponentChooser(GraphDataGenerator graphDataGenerator) {
+  RandomGraphComponentChooser(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
     this.graphDataGenerator = graphDataGenerator;
+
+    File directoryFile = new File(directory);
+    nodeFile = new File(directory + "nodeIds.txt");
+    edgeFile = new File(directory + "edgeIds.txt");
+    componentFile = new File(directory + "componentIds.txt");
+
+    checkFilesAvailable(directoryFile, nodeFile, edgeFile, componentFile);
+  }
+
+  protected abstract boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException;
+
+  File getNodeFile() {
+    return nodeFile;
+  }
+
+  File getEdgeFile() {
+    return edgeFile;
+  }
+
+  File getComponentFile() {
+    return componentFile;
   }
 
   public final GraphComponent choose() {
