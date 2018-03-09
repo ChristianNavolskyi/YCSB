@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.Generator;
 
 import java.io.File;
@@ -34,6 +35,8 @@ import java.util.Map;
  */
 public abstract class GraphDataGenerator extends Generator<Graph> {
 
+  public static final String KEY_IDENTIFIER = "Key";
+
   private final Map<Long, Edge> edgeMap = new HashMap<>();
   private final Map<Long, Node> nodeMap = new HashMap<>();
   private final File edgeFile;
@@ -46,7 +49,7 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
    * @throws IOException if the directory of the files can't be created.
    */
   GraphDataGenerator(String directory) throws IOException {
-    GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new GraphDataRecreator.ByteIteratorAdapter());
+    GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
     gson = gsonBuilder.create();
 
     valueType = new TypeToken<Map<String, ByteIterator>>() {
@@ -57,12 +60,20 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     }
 
     File directoryFile = new File(directory);
-    edgeFile = new File(directory + "edges.json");
-    nodeFile = new File(directory + "nodes.json");
+    edgeFile = new File(getComponentFileName(directory, Edge.EDGE_IDENTIFIER));
+    nodeFile = new File(getComponentFileName(directory, Node.NODE_IDENTIFIER));
 
     if (!necessaryFilesAvailable(directoryFile, nodeFile, edgeFile)) {
       throw new IOException("Files not available or could not be created.");
     }
+  }
+
+  public static String getComponentFileName(String directory, String componentIdentifier) {
+    return directory + componentIdentifier + ".json";
+  }
+
+  static String getKeyString(String key) {
+    return KEY_IDENTIFIER + "-" + key + "-";
   }
 
   File getEdgeFile() {
@@ -83,7 +94,12 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
 
   @Override
   public final Graph nextValue() {
-    Graph graph = createNextValue();
+    Graph graph = new Graph();
+    try {
+      graph = createNextValue();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
     storeGraphComponents(graph);
 
@@ -104,7 +120,7 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     }
   }
 
-  abstract Graph createNextValue();
+  abstract Graph createNextValue() throws IOException;
 
   abstract boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile);
 }

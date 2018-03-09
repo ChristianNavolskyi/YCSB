@@ -17,10 +17,7 @@
 
 package com.yahoo.ycsb.workloads;
 
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.Workload;
-import com.yahoo.ycsb.WorkloadException;
+import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.OperationOrderGenerator;
 import com.yahoo.ycsb.generator.OperationOrderRecreator;
@@ -34,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static com.yahoo.ycsb.generator.graph.GraphDataGenerator.getComponentFileName;
 import static com.yahoo.ycsb.generator.graph.GraphDataRecorder.KEY_IDENTIFIER;
 import static com.yahoo.ycsb.generator.graph.Node.NODE_FIELDS_SET;
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
@@ -85,6 +83,22 @@ public class GraphWorkload extends Workload {
     return Integer.valueOf(result);
   }
 
+  private static String getOutputDirectory(Properties properties) throws WorkloadException {
+    String outputDirectory = properties.getProperty(DATA_SET_DIRECTORY_PROPERTY, DATA_SET_DIRECTORY_DEFAULT);
+
+    if (outputDirectory.charAt(outputDirectory.length() - 1) != separatorChar) {
+      outputDirectory += separatorChar;
+    }
+
+    File directory = new File(outputDirectory);
+
+    if (!directory.exists() && !directory.mkdirs()) {
+      throw new WorkloadException("Could not read output directory for files with path: " + outputDirectory);
+    }
+
+    return outputDirectory;
+  }
+
   //TODO Two modes one for only generating data and one for loading that data iff present (else generates) and
   // running a benchmark
   @Override
@@ -95,32 +109,34 @@ public class GraphWorkload extends Workload {
     maxScanLength = Integer.parseInt(properties.getProperty(MAX_SCAN_LENGTH_PROPERTY,
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 
+    Mode mode = Mode.getMode(properties);
     String outputDirectory = getOutputDirectory(properties);
-    boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(outputDirectory);
-
-    Mode mode = Mode.getMode(benchmarkingDataPresent);
 
     System.out.println("Running graph workload in " + mode.toString() + " mode");
 
     //TODO distinguish between load and run and set values accordingly.
     try {
-      if (mode == Mode.RUN_BENCHMARK) {
+      switch (mode) {
+      case RUN_BENCHMARK_LOADING:
         graphDataGenerator = new GraphDataRecreator(outputDirectory);
-
+        break;
+      case RUN_BENCHMARK_RUNNING:
+        graphDataGenerator = new GraphDataRecreator(outputDirectory);
         randomGraphComponentChooser = new RandomGraphComponentRecreator(outputDirectory, graphDataGenerator);
-
         orderGenerator = new OperationOrderRecreator(outputDirectory);
-      }
-
-      if (mode == Mode.GENERATE_DATA_AND_RUN_BENCHMARK) {
-        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
-
-        randomGraphComponentChooser = new RandomGraphComponentGenerator(outputDirectory, graphDataGenerator);
-
-        orderGenerator = new OperationOrderGenerator(outputDirectory, createOperationGenerator(properties));
-
         Node.presetId(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER));
         Edge.presetId(getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
+        break;
+      case GENERATE_DATA_AND_RUN_BENCHMARK_LOADING:
+        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
+        break;
+      case GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING:
+        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
+        randomGraphComponentChooser = new RandomGraphComponentGenerator(outputDirectory, graphDataGenerator);
+        orderGenerator = new OperationOrderGenerator(outputDirectory, createOperationGenerator(properties));
+        Node.presetId(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER));
+        Edge.presetId(getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
+        break;
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -275,58 +291,12 @@ public class GraphWorkload extends Workload {
     db.update(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values);
   }
 
-  //TODO check all files (order of operations)
-  private boolean checkBenchmarkingDataPresent(String outputDirectory) {
-    String nodeFileName = getDatabaseFileName(outputDirectory, Node.NODE_IDENTIFIER);
-    String edgeFileName = getDatabaseFileName(outputDirectory, Edge.EDGE_IDENTIFIER);
-
-    File nodeFile = new File(nodeFileName);
-    File edgeFile = new File(edgeFileName);
-
-    if (nodeFile.exists() && edgeFile.exists()) {
-      return true;
-    } else {
-      deleteExistingFile(nodeFile, edgeFile);
-    }
-
-    return false;
-  }
-
-  private void deleteExistingFile(File nodeFile, File edgeFile) {
-    if (nodeFile.exists()) {
-      nodeFile.delete();
-    }
-    if (edgeFile.exists()) {
-      edgeFile.delete();
-    }
-  }
-
-
-  private String getOutputDirectory(Properties properties) throws WorkloadException {
-    String outputDirectory = properties.getProperty(DATA_SET_DIRECTORY_PROPERTY, DATA_SET_DIRECTORY_DEFAULT);
-
-    if (outputDirectory.charAt(outputDirectory.length() - 1) != separatorChar) {
-      outputDirectory += separatorChar;
-    }
-
-    File directory = new File(outputDirectory);
-
-    if (!directory.exists() && !directory.mkdirs()) {
-      throw new WorkloadException("Could not read output directory for files with path: " + outputDirectory);
-    }
-
-    return outputDirectory;
-  }
-
+  //TODO should be method from graphDataGenerator.
   private int getLastIdOfType(String outputDirectory, String typeIdentifier) throws IOException {
-    String fileName = getDatabaseFileName(outputDirectory, typeIdentifier);
+    String fileName = getComponentFileName(outputDirectory, typeIdentifier);
     List<String> strings = Files.readAllLines(Paths.get(fileName),
         Charset.forName(new FileReader(fileName).getEncoding()));
     return getKeyFromKeyString(strings.get(strings.size() - 1));
-  }
-
-  private String getDatabaseFileName(String outputDirectory, String table) {
-    return outputDirectory + table + ".json";
   }
 
   private void printMap(Map<String, ByteIterator> map) {
@@ -354,14 +324,55 @@ public class GraphWorkload extends Workload {
   }
 
   private enum Mode {
-    RUN_BENCHMARK,
-    GENERATE_DATA_AND_RUN_BENCHMARK;
+    RUN_BENCHMARK_LOADING,
+    RUN_BENCHMARK_RUNNING,
+    GENERATE_DATA_AND_RUN_BENCHMARK_LOADING,
+    GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING;
 
-    static Mode getMode(boolean dataSetPresent) {
-      if (dataSetPresent) {
-        return RUN_BENCHMARK;
+    static Mode getMode(Properties properties) throws WorkloadException {
+      boolean isRunPhase = checkIfRunPhase(properties);
+      boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(properties);
+
+      if (benchmarkingDataPresent) {
+        if (isRunPhase) {
+          return RUN_BENCHMARK_RUNNING;
+        } else {
+          return RUN_BENCHMARK_LOADING;
+        }
       } else {
-        return GENERATE_DATA_AND_RUN_BENCHMARK;
+        if (isRunPhase) {
+          return GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING;
+        } else {
+          return GENERATE_DATA_AND_RUN_BENCHMARK_LOADING;
+        }
+      }
+    }
+
+    private static boolean checkIfRunPhase(Properties properties) {
+      return Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
+    }
+
+    //TODO check all files. Create files only when really created. Still call here?
+    private static boolean checkBenchmarkingDataPresent(Properties properties) throws WorkloadException {
+      String outputDirectory = getOutputDirectory(properties);
+
+      File nodeFile = new File(getComponentFileName(outputDirectory, Node.NODE_IDENTIFIER));
+      File edgeFile = new File(getComponentFileName(outputDirectory, Edge.EDGE_IDENTIFIER));
+
+      if (nodeFile.exists() && edgeFile.exists()) {
+        return true;
+      } else {
+        deleteExistingFile(nodeFile, edgeFile);
+        return false;
+      }
+    }
+
+    private static void deleteExistingFile(File nodeFile, File edgeFile) {
+      if (nodeFile.exists()) {
+        nodeFile.delete();
+      }
+      if (edgeFile.exists()) {
+        edgeFile.delete();
       }
     }
   }

@@ -36,11 +36,9 @@ import java.util.Properties;
  */
 public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
-  public static final String KEY_IDENTIFIER = "Key";
-
-  private static final String TEST_PARAMETER_COUNT_KEY = "testParameterCount";
+  private static final String TEST_PARAMETER_COUNT_KEY = "testparametercount";
   private static final int TEST_PARAMETER_COUNT_DEFAULT_VALUE = 128;
-  private static final String PRODUCTS_PER_ORDER_KEY = "productsPerOrder";
+  private static final String PRODUCTS_PER_ORDER_KEY = "productsperorder";
   private static final int PRODUCTS_PER_ORDER_DEFAULT_VALUE = 10;
 
   private final int testParameterCount;
@@ -74,19 +72,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     fileWriterMap = new HashMap<>();
   }
 
-  static String getKeyString(String key) {
-    return KEY_IDENTIFIER + "-" + key + "-";
-  }
-
   @Override
-  Graph createNextValue() {
+  Graph createNextValue() throws IOException {
     lastValue = createGraphNode();
 
-    try {
-      saveGraphContentsAndFillValueOfNodes(lastValue);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    saveGraphContentsAndFillValueOfNodes(lastValue);
 
     return lastValue;
   }
@@ -106,7 +96,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     if (lastValue != null) {
       return lastValue;
     } else {
-      return nextValue();
+      return new Graph();
     }
   }
 
@@ -173,7 +163,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
       testCounter++;
     }
 
-    if (testCounter >= testParameterCount - 1) {
+    if (isTestingFinished()) {
       shouldCreateProduct = true;
       shouldCreateDate = true;
       shouldCreateTests = true;
@@ -184,27 +174,31 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     return graph;
   }
 
-  private void insert(File file, String key, Map<String, ByteIterator> values) throws IOException {
-    String output = gson.toJson(values, valueType);
-    FileWriter outputStreamWriter = getOutputStreamWriter(file);
-
-    writeToFile(key, output, outputStreamWriter);
+  private boolean isTestingFinished() {
+    return testCounter == testParameterCount && !shouldCreateProduct && !shouldCreateDate && !shouldCreateTests;
   }
 
-  private FileWriter getOutputStreamWriter(File file) throws IOException {
+  private void insert(File file, String key, Map<String, ByteIterator> values) throws IOException {
+    String output = gson.toJson(values, valueType);
+    FileWriter fileWriter = getFileWriter(file);
+
+    writeToFile(key, output, fileWriter);
+  }
+
+  private FileWriter getFileWriter(File file) throws IOException {
     if (!fileWriterMap.containsKey(file.getName())) {
 
-      FileWriter outputStreamWriter = new FileWriter(file, true);
-      fileWriterMap.put(file.getName(), outputStreamWriter);
+      FileWriter fileWriter = new FileWriter(file, true);
+      fileWriterMap.put(file.getName(), fileWriter);
     }
 
     return fileWriterMap.get(file.getName());
   }
 
-  private void writeToFile(String key, String output, FileWriter outputStreamWriter) throws IOException {
-    outputStreamWriter.write(getKeyString(key));
-    outputStreamWriter.write(output);
-    outputStreamWriter.write("\n");
-    outputStreamWriter.flush();
+  private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
+    fileWriter.write(getKeyString(key));
+    fileWriter.write(output);
+    fileWriter.write("\n");
+    fileWriter.flush();
   }
 }
