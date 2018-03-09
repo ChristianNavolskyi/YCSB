@@ -32,7 +32,7 @@ public class GraphDataRecorderTest {
 
   @Before
   public void setUp() throws IOException {
-    graphDataRecorder = new GraphDataRecorder(directory.getAbsolutePath(), properties);
+    graphDataRecorder = new GraphDataRecorder(directory.getAbsolutePath(), false, properties);
   }
 
   @After
@@ -55,7 +55,7 @@ public class GraphDataRecorderTest {
     File nodeFile = new File(directory + File.separator + "nodes.json");
     nodeFile.createNewFile();
 
-    graphDataRecorder = new GraphDataRecorder(directory.getAbsolutePath(), properties);
+    graphDataRecorder = new GraphDataRecorder(directory.getAbsolutePath(), false, properties);
   }
 
   @Test

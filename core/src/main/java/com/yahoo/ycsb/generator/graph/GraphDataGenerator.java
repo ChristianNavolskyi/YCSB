@@ -23,14 +23,15 @@ import com.google.gson.reflect.TypeToken;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.Generator;
-import com.yahoo.ycsb.generator.graph.Edge;
-import com.yahoo.ycsb.generator.graph.Graph;
-import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,6 +40,11 @@ import java.util.Map;
 public abstract class GraphDataGenerator extends Generator<Graph> {
 
   public static final String KEY_IDENTIFIER = "Key";
+
+  private static final String loadEdgeFileName = Edge.EDGE_IDENTIFIER + "load.json";
+  private static final String loadNodeFileName = Node.NODE_IDENTIFIER + "load.json";
+  private static final String runEdgeFileName = Edge.EDGE_IDENTIFIER + "run.json";
+  private static final String runNodeFileName = Node.NODE_IDENTIFIER + "run.json";
 
   private final Map<Long, Edge> edgeMap = new HashMap<>();
   private final Map<Long, Node> nodeMap = new HashMap<>();
@@ -50,10 +56,11 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
   Graph lastValue = new Graph();
 
   /**
-   * @param directory in which the files for nodes and edges should be stored/restored from.
+   * @param directory  in which the files for nodes and edges should be stored/restored from.
+   * @param isRunPhase presets node and edge ids if is run phase.
    * @throws IOException if the directory of the files can't be created.
    */
-  GraphDataGenerator(String directory) throws IOException {
+  GraphDataGenerator(String directory, boolean isRunPhase) throws IOException {
     GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
     gson = gsonBuilder.create();
 
@@ -65,16 +72,26 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     }
 
     File directoryFile = new File(directory);
-    edgeFile = new File(getComponentFileName(directory, Edge.EDGE_IDENTIFIER));
-    nodeFile = new File(getComponentFileName(directory, Node.NODE_IDENTIFIER));
+
+    if (isRunPhase) {
+      nodeFile = new File(directory + runNodeFileName);
+      edgeFile = new File(directory + runEdgeFileName);
+
+      Node.presetId(getLastId(nodeFile));
+      Edge.presetId(getLastId(edgeFile));
+    } else {
+      nodeFile = new File(directory + loadNodeFileName);
+      edgeFile = new File(directory + loadEdgeFileName);
+    }
 
     if (!necessaryFilesAvailable(directoryFile, nodeFile, edgeFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static String getComponentFileName(String directory, String componentIdentifier) {
-    return directory + componentIdentifier + ".json";
+  public static boolean checkDataPresent(String outputDirectory) {
+    return new File(outputDirectory + loadNodeFileName).exists()
+        && new File(outputDirectory + loadEdgeFileName).exists();
   }
 
   static String getKeyString(String key) {
@@ -114,6 +131,13 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
 
   File getNodeFile() {
     return nodeFile;
+  }
+
+  private int getLastId(File file) throws IOException {
+    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
+    String lastEntry = lines.get(lines.size() - 1);
+
+    return Integer.parseInt(lastEntry.split("-")[1]);
   }
 
   private void storeGraphComponents(Graph graph) {

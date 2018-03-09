@@ -60,8 +60,8 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   private Map<String, FileWriter> fileWriterMap;
 
-  public GraphDataRecorder(String outputDirectory, Properties properties) throws IOException {
-    super(outputDirectory);
+  public GraphDataRecorder(String outputDirectory, boolean isRunPhase, Properties properties) throws IOException {
+    super(outputDirectory, isRunPhase);
 
     testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
         String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));

@@ -39,8 +39,8 @@ public class GraphDataRecreator extends GraphDataGenerator {
   private final List<Graph> graphs;
   private int currentPosition = -1;
 
-  public GraphDataRecreator(String inputDirectory) throws IOException {
-    super(inputDirectory);
+  public GraphDataRecreator(String inputDirectory, boolean isRunPhase) throws IOException {
+    super(inputDirectory, isRunPhase);
 
     Map<Long, Node> nodes = parseNodes(getNodeFile());
     Map<Long, Edge> edges = parseEdges(getEdgeFile(), nodes);

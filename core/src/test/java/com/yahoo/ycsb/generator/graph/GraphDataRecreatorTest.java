@@ -18,17 +18,17 @@ public class GraphDataRecreatorTest {
 
   @Before
   public void initGraphDataRecreator() throws IOException {
-    graphDataRecreator = new GraphDataRecreator(testResources);
+    graphDataRecreator = new GraphDataRecreator(testResources, false);
   }
 
   @Test
   public void loadFilesTest() throws IOException {
-    graphDataRecreator = new GraphDataRecreator(testResources);
+    graphDataRecreator = new GraphDataRecreator(testResources, false);
   }
 
   @Test(expected = IOException.class)
   public void tryLoadingFilesButFailBecauseFolderDoesNotContainNecessaryFiles() throws IOException {
-    graphDataRecreator = new GraphDataRecreator(System.getProperty("user.dir"));
+    graphDataRecreator = new GraphDataRecreator(System.getProperty("user.dir"), false);
   }
 
   @Test

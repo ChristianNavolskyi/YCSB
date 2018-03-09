@@ -32,22 +32,34 @@ public abstract class RandomGraphComponentGenerator {
 
   private static final int NODE = 0;
   private static final int EDGE = 1;
+  private static final String nodeFileName = "nodeIds.txt";
+  private static final String edgeFileName = "edgeIds.txt";
+  private static final String componentFileName = "componentIds.txt";
+
   private final File nodeFile;
   private final File edgeFile;
   private final File componentFile;
-  private GraphDataGenerator graphDataGenerator;
+  private final GraphDataGenerator graphDataGenerator;
 
   RandomGraphComponentGenerator(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
     this.graphDataGenerator = graphDataGenerator;
 
     File directoryFile = new File(directory);
-    nodeFile = new File(directory + "nodeIds.txt");
-    edgeFile = new File(directory + "edgeIds.txt");
-    componentFile = new File(directory + "componentIds.txt");
+
+    nodeFile = new File(directory + nodeFileName);
+    edgeFile = new File(directory + edgeFileName);
+
+    componentFile = new File(directory + componentFileName);
 
     if (!checkFilesAvailable(directoryFile, nodeFile, edgeFile, componentFile)) {
       throw new IOException(getExceptionMessage());
     }
+  }
+
+  public static boolean checkDataPresent(String outputDirectory) {
+    return new File(outputDirectory + nodeFileName).exists()
+        && new File(outputDirectory + edgeFileName).exists()
+        && new File(outputDirectory + componentFileName).exists();
   }
 
   public final GraphComponent choose() {

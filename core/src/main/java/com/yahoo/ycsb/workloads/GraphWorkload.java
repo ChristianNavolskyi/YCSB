@@ -19,21 +19,22 @@ package com.yahoo.ycsb.workloads;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.Generator;
-import com.yahoo.ycsb.generator.OperationOrderGenerator;
-import com.yahoo.ycsb.generator.OperationOrderRecreator;
 import com.yahoo.ycsb.generator.graph.*;
+import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentGenerator;
+import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecorder;
+import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecreator;
+import com.yahoo.ycsb.generator.operationorder.OperationOrderGenerator;
+import com.yahoo.ycsb.generator.operationorder.OperationOrderRecorder;
+import com.yahoo.ycsb.generator.operationorder.OperationOrderRecreator;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Vector;
 
-import static com.yahoo.ycsb.generator.graph.GraphDataGenerator.getComponentFileName;
 import static com.yahoo.ycsb.generator.graph.GraphDataRecorder.KEY_IDENTIFIER;
-import static com.yahoo.ycsb.generator.graph.Node.NODE_FIELDS_SET;
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
 import static java.io.File.separatorChar;
 
@@ -64,8 +65,8 @@ public class GraphWorkload extends Workload {
 
   private int maxScanLength;
   private GraphDataGenerator graphDataGenerator;
-  private Generator<String> orderGenerator;
-  private RandomGraphComponentChooser randomGraphComponentChooser;
+  private OperationOrderGenerator orderGenerator;
+  private RandomGraphComponentGenerator randomGraphComponentGenerator;
 
   // Modes:
   // 2 - generate dataSet and run benchmark         - !dataSetPresent
@@ -118,24 +119,20 @@ public class GraphWorkload extends Workload {
     try {
       switch (mode) {
       case RUN_BENCHMARK_LOADING:
-        graphDataGenerator = new GraphDataRecreator(outputDirectory);
+        graphDataGenerator = new GraphDataRecreator(outputDirectory, false);
         break;
       case RUN_BENCHMARK_RUNNING:
-        graphDataGenerator = new GraphDataRecreator(outputDirectory);
-        randomGraphComponentChooser = new RandomGraphComponentRecreator(outputDirectory, graphDataGenerator);
+        graphDataGenerator = new GraphDataRecreator(outputDirectory, true);
+        randomGraphComponentGenerator = new RandomGraphComponentRecreator(outputDirectory, graphDataGenerator);
         orderGenerator = new OperationOrderRecreator(outputDirectory);
-        Node.presetId(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER));
-        Edge.presetId(getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
         break;
       case GENERATE_DATA_AND_RUN_BENCHMARK_LOADING:
-        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
+        graphDataGenerator = new GraphDataRecorder(outputDirectory, false, properties);
         break;
       case GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING:
-        graphDataGenerator = new GraphDataRecorder(outputDirectory, properties);
-        randomGraphComponentChooser = new RandomGraphComponentGenerator(outputDirectory, graphDataGenerator);
-        orderGenerator = new OperationOrderGenerator(outputDirectory, createOperationGenerator(properties));
-        Node.presetId(getLastIdOfType(outputDirectory, Node.NODE_IDENTIFIER));
-        Edge.presetId(getLastIdOfType(outputDirectory, Edge.EDGE_IDENTIFIER));
+        graphDataGenerator = new GraphDataRecorder(outputDirectory, true, properties);
+        randomGraphComponentGenerator = new RandomGraphComponentRecorder(outputDirectory, graphDataGenerator);
+        orderGenerator = new OperationOrderRecorder(outputDirectory, createOperationGenerator(properties));
         break;
       }
     } catch (IOException e) {
@@ -169,6 +166,7 @@ public class GraphWorkload extends Workload {
 
   @Override
   public boolean doTransaction(DB db, Object threadState) {
+    //TODO wrong mode is selected by first run.
     String nextOperation = orderGenerator.nextValue();
 
     return executeOperation(nextOperation, db, graphDataGenerator);
@@ -221,7 +219,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionRead(DB db) {
-    GraphComponent graphComponent = randomGraphComponentChooser.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -237,7 +235,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionUpdate(DB db) {
-    GraphComponent graphComponent = randomGraphComponentChooser.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -256,7 +254,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionScan(DB db) {
-    GraphComponent graphComponent = randomGraphComponentChooser.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
@@ -275,10 +273,10 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionReadModifyWrite(DB db) {
-    Node node = randomGraphComponentChooser.chooseRandomNode();
+    Node node = randomGraphComponentGenerator.chooseRandomNode();
     Map<String, ByteIterator> values = new HashMap<>();
 
-    db.read(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), NODE_FIELDS_SET, values);
+    db.read(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), Node.NODE_FIELDS_SET, values);
 
     System.out.println("old");
     printMap(values);
@@ -289,14 +287,6 @@ public class GraphWorkload extends Workload {
     printMap(values);
 
     db.update(node.getComponentTypeIdentifier(), String.valueOf(node.getId()), values);
-  }
-
-  //TODO should be method from graphDataGenerator.
-  private int getLastIdOfType(String outputDirectory, String typeIdentifier) throws IOException {
-    String fileName = getComponentFileName(outputDirectory, typeIdentifier);
-    List<String> strings = Files.readAllLines(Paths.get(fileName),
-        Charset.forName(new FileReader(fileName).getEncoding()));
-    return getKeyFromKeyString(strings.get(strings.size() - 1));
   }
 
   private void printMap(Map<String, ByteIterator> map) {
@@ -331,7 +321,7 @@ public class GraphWorkload extends Workload {
 
     static Mode getMode(Properties properties) throws WorkloadException {
       boolean isRunPhase = checkIfRunPhase(properties);
-      boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(properties);
+      boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(properties, isRunPhase);
 
       if (benchmarkingDataPresent) {
         if (isRunPhase) {
@@ -353,27 +343,17 @@ public class GraphWorkload extends Workload {
     }
 
     //TODO check all files. Create files only when really created. Still call here?
-    private static boolean checkBenchmarkingDataPresent(Properties properties) throws WorkloadException {
+    private static boolean checkBenchmarkingDataPresent(Properties properties, boolean isRunPhase) throws WorkloadException {
       String outputDirectory = getOutputDirectory(properties);
 
-      File nodeFile = new File(getComponentFileName(outputDirectory, Node.NODE_IDENTIFIER));
-      File edgeFile = new File(getComponentFileName(outputDirectory, Edge.EDGE_IDENTIFIER));
+      boolean everythingPresent = GraphDataGenerator.checkDataPresent(outputDirectory);
 
-      if (nodeFile.exists() && edgeFile.exists()) {
-        return true;
-      } else {
-        deleteExistingFile(nodeFile, edgeFile);
-        return false;
+      if (isRunPhase) {
+        everythingPresent = everythingPresent && RandomGraphComponentGenerator.checkDataPresent(outputDirectory);
+        everythingPresent = everythingPresent && OperationOrderGenerator.checkDataPresent(outputDirectory);
       }
-    }
 
-    private static void deleteExistingFile(File nodeFile, File edgeFile) {
-      if (nodeFile.exists()) {
-        nodeFile.delete();
-      }
-      if (edgeFile.exists()) {
-        edgeFile.delete();
-      }
+      return everythingPresent;
     }
   }
 }
