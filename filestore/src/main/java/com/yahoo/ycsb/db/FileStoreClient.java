@@ -25,7 +25,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
-import com.yahoo.ycsb.generator.graph.GraphFileReader;
+import com.yahoo.ycsb.generator.graph.GraphDataRecreator;
 
 import java.io.File;
 import java.io.FileReader;
@@ -37,7 +37,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static com.yahoo.ycsb.generator.graph.GraphFileReader.*;
+import static com.yahoo.ycsb.generator.graph.GraphDataRecreator.getJsonReader;
+import static com.yahoo.ycsb.generator.graph.GraphDataRecreator.getLinesOfStringsFromFile;
 import static com.yahoo.ycsb.workloads.GraphWorkload.*;
 import static java.io.File.separatorChar;
 
@@ -48,7 +49,7 @@ import static java.io.File.separatorChar;
 public class FileStoreClient extends DB {
 
   private final GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new
-      GraphFileReader.ByteIteratorAdapter());
+      GraphDataRecreator.ByteIteratorAdapter());
   private final Type valuesType = new TypeToken<Map<String, ByteIterator>>() {}.getType();
 
   private Gson gson;
@@ -202,7 +203,7 @@ public class FileStoreClient extends DB {
 
 
   private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
-    fileWriter.write(getKeyString(key));
+    fileWriter.write("");
     fileWriter.write(output);
     fileWriter.write("\n");
     fileWriter.flush();
@@ -210,7 +211,7 @@ public class FileStoreClient extends DB {
 
   private void replaceEntryInFile(String updatedEntry, String key, String filename) throws IOException {
     List<String> fileContents = getLinesOfStringsFromFile(filename);
-    String keyString = getKeyString(key);
+    String keyString = ""; //getKeyString(key);
     FileWriter fileWriter = new FileWriter(filename, false);
 
     for (String content : fileContents) {
@@ -227,7 +228,7 @@ public class FileStoreClient extends DB {
 
   private boolean containsKey(String key, String table) throws IOException {
     List<String> components = getLinesOfStringsFromFile(getDatabaseFileName(table));
-    String keyString = getKeyString(key);
+    String keyString = ""; //getKeyString(key);
 
     for (String component : components) {
       if (component.startsWith(keyString)) {

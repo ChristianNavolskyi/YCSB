@@ -128,7 +128,6 @@ LICENSE file.
     <module>dynamodb</module>
     <module>elasticsearch</module>
     <module>elasticsearch5</module>
-    <module>filestore</module>
     <module>geode</module>
     <module>googlebigtable</module>
     <module>googledatastore</module>
