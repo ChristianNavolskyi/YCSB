@@ -25,7 +25,7 @@ public class GraphDataRecorderTest {
   private GraphDataRecorder graphDataRecorder;
 
   @BeforeClass
-  public static void initParameters() throws IOException {
+  public static void initPropertiesAndClearDirectory() throws IOException {
     FileUtils.deleteDirectory(directory);
     properties.setProperty("testparametercount", "1");
   }
