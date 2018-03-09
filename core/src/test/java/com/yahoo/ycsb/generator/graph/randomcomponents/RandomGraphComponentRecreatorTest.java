@@ -1,6 +1,10 @@
-package com.yahoo.ycsb.generator.graph;
+package com.yahoo.ycsb.generator.graph.randomcomponents;
 
 
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
+import com.yahoo.ycsb.generator.graph.Node;
+import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecreator;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;

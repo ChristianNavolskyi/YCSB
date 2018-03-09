@@ -1,5 +1,10 @@
-package com.yahoo.ycsb.generator.graph;
+package com.yahoo.ycsb.generator.graph.randomcomponents;
 
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.GraphComponent;
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
+import com.yahoo.ycsb.generator.graph.Node;
+import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecorder;
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -20,10 +25,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
-public class RandomGraphComponentGeneratorTest {
+public class RandomGraphComponentRecorderTest {
 
   private static String directory = System.getProperty("user.dir") + File.separator + "test" + File.separator;
-  private static RandomGraphComponentGenerator randomGraphComponentGenerator;
+  private static RandomGraphComponentRecorder randomGraphComponentRecorder;
   private int numberOfTimes = 100;
 
   @BeforeClass
@@ -32,7 +37,7 @@ public class RandomGraphComponentGeneratorTest {
     when(generator.getEdge(anyLong())).thenReturn(Edge.recreateEdge(1));
     when(generator.getNode(anyLong())).thenReturn(Node.recreateNode(1));
     FileUtils.deleteDirectory(directory);
-    randomGraphComponentGenerator = new RandomGraphComponentGenerator(directory, generator);
+    randomGraphComponentRecorder = new RandomGraphComponentRecorder(directory, generator);
   }
 
   @AfterClass
@@ -52,7 +57,7 @@ public class RandomGraphComponentGeneratorTest {
     List<Long> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
-      results.add(randomGraphComponentGenerator.chooseRandomEdgeId());
+      results.add(randomGraphComponentRecorder.chooseRandomEdgeId());
     }
 
     String fileName = directory + "edgeIds.txt";
@@ -75,7 +80,7 @@ public class RandomGraphComponentGeneratorTest {
     List<Long> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
-      results.add(randomGraphComponentGenerator.chooseRandomNodeId());
+      results.add(randomGraphComponentRecorder.chooseRandomNodeId());
     }
 
     String fileName = directory + "nodeIds.txt";
@@ -97,7 +102,7 @@ public class RandomGraphComponentGeneratorTest {
     List<Integer> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
-      results.add(randomGraphComponentGenerator.randomNodeOrEdge());
+      results.add(randomGraphComponentRecorder.randomNodeOrEdge());
     }
 
     String fileName = directory + "componentIds.txt";
@@ -120,7 +125,7 @@ public class RandomGraphComponentGeneratorTest {
     boolean hadEdge = false;
 
     while (!hadNode || !hadEdge) {
-      GraphComponent randomComponent = randomGraphComponentGenerator.choose();
+      GraphComponent randomComponent = randomGraphComponentRecorder.choose();
 
       assertNotNull(randomComponent);
 
