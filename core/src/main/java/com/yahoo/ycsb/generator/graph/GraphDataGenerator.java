@@ -23,6 +23,9 @@ import com.google.gson.reflect.TypeToken;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.Graph;
+import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,8 +44,10 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
   private final Map<Long, Node> nodeMap = new HashMap<>();
   private final File edgeFile;
   private final File nodeFile;
+
   Gson gson;
   Type valueType;
+  Graph lastValue = new Graph();
 
   /**
    * @param directory in which the files for nodes and edges should be stored/restored from.
@@ -64,7 +69,7 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     nodeFile = new File(getComponentFileName(directory, Node.NODE_IDENTIFIER));
 
     if (!necessaryFilesAvailable(directoryFile, nodeFile, edgeFile)) {
-      throw new IOException("Files not available or could not be created.");
+      throw new IOException(getExceptionMessage());
     }
   }
 
@@ -76,20 +81,9 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     return KEY_IDENTIFIER + "-" + key + "-";
   }
 
-  File getEdgeFile() {
-    return edgeFile;
-  }
-
-  File getNodeFile() {
-    return nodeFile;
-  }
-
-  public Node getNode(long key) {
-    return nodeMap.get(key);
-  }
-
-  public Edge getEdge(long key) {
-    return edgeMap.get(key);
+  @Override
+  public final Graph lastValue() {
+    return lastValue;
   }
 
   @Override
@@ -106,6 +100,22 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     return graph;
   }
 
+  public Node getNode(long key) {
+    return nodeMap.get(key);
+  }
+
+  public Edge getEdge(long key) {
+    return edgeMap.get(key);
+  }
+
+  File getEdgeFile() {
+    return edgeFile;
+  }
+
+  File getNodeFile() {
+    return nodeFile;
+  }
+
   private void storeGraphComponents(Graph graph) {
     for (Edge edge : graph.getEdges()) {
       if (!edgeMap.containsKey(edge.getId())) {
@@ -119,6 +129,8 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
       }
     }
   }
+
+  abstract String getExceptionMessage();
 
   abstract Graph createNextValue() throws IOException;
 

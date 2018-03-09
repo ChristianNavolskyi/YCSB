@@ -37,9 +37,7 @@ import java.util.Map;
 public class GraphDataRecreator extends GraphDataGenerator {
 
   private final List<Graph> graphs;
-
   private int currentPosition = -1;
-  private Graph lastReproducedGraph;
 
   public GraphDataRecreator(String inputDirectory) throws IOException {
     super(inputDirectory);
@@ -49,7 +47,28 @@ public class GraphDataRecreator extends GraphDataGenerator {
     graphs = createSingleGraphs(edges);
   }
 
-  private static List<JsonReader> getJsonReaders(File file) throws IOException {
+  @Override
+  String getExceptionMessage() {
+    return "Graph data files aren't present.";
+  }
+
+  @Override
+  Graph createNextValue() {
+    if (hasValueAtNextPosition()) {
+      lastValue = graphs.get(++currentPosition);
+    } else {
+      lastValue = new Graph();
+    }
+
+    return lastValue;
+  }
+
+  @Override
+  boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile) {
+    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists();
+  }
+
+  private List<JsonReader> getJsonReaders(File file) throws IOException {
     List<JsonReader> result = new ArrayList<>();
     List<String> components = getLinesOfStringsFromFile(file);
 
@@ -65,30 +84,9 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return result;
   }
 
-  private static List<String> getLinesOfStringsFromFile(File file) throws IOException {
+  private List<String> getLinesOfStringsFromFile(File file) throws IOException {
     FileReader fileReader = new FileReader(file);
     return Files.readAllLines(file.toPath(), Charset.forName(fileReader.getEncoding()));
-  }
-
-  @Override
-  Graph createNextValue() {
-    if (hasValueAtNextPosition()) {
-      lastReproducedGraph = graphs.get(++currentPosition);
-    } else {
-      lastReproducedGraph = new Graph();
-    }
-
-    return lastReproducedGraph;
-  }
-
-  @Override
-  boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile) {
-    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists();
-  }
-
-  @Override
-  public Graph lastValue() {
-    return lastReproducedGraph;
   }
 
   private Map<Long, Node> parseNodes(File nodeFile) {

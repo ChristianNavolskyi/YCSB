@@ -44,7 +44,6 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   private final int testParameterCount;
   private final int productsPerOrder;
 
-  private Graph lastValue = null;
   private Node factory;
   private Node orders;
   private Node machine;
@@ -73,6 +72,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
+  String getExceptionMessage() {
+    return "Could not create graph data files or they are already present.";
+  }
+
+  @Override
   Graph createNextValue() throws IOException {
     lastValue = createGraphNode();
 
@@ -88,15 +92,6 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
           .createNewFile();
     } catch (IOException cause) {
       throw new RuntimeException("Could not create files.", cause);
-    }
-  }
-
-  @Override
-  public Graph lastValue() {
-    if (lastValue != null) {
-      return lastValue;
-    } else {
-      return new Graph();
     }
   }
 
