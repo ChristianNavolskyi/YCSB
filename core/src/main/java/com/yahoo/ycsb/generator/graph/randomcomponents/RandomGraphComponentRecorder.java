@@ -15,7 +15,12 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.generator.graph;
+package com.yahoo.ycsb.generator.graph.randomcomponents;
+
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.GraphComponent;
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
+import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -25,15 +30,15 @@ import java.util.Random;
 /**
  * Class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
  */
-public class RandomGraphComponentGenerator extends RandomGraphComponentChooser {
+public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator {
 
   private FileWriter nodeFileWriter;
   private FileWriter edgeFileWriter;
   private FileWriter componentFileWriter;
   private Random random;
 
-  public RandomGraphComponentGenerator(String outputDirectory,
-                                       GraphDataGenerator graphDataGenerator) throws IOException {
+  public RandomGraphComponentRecorder(String outputDirectory,
+                                      GraphDataGenerator graphDataGenerator) throws IOException {
     super(outputDirectory, graphDataGenerator);
 
     nodeFileWriter = new FileWriter(getNodeFile());
@@ -47,6 +52,11 @@ public class RandomGraphComponentGenerator extends RandomGraphComponentChooser {
   protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException {
     return (directoryFile.exists() || directoryFile.mkdirs()) && nodeFile.createNewFile() && edgeFile.createNewFile()
         && componentFile.createNewFile();
+  }
+
+  @Override
+  String getExceptionMessage() {
+    return "Could not create random graph component files or they are already present.";
   }
 
   @Override

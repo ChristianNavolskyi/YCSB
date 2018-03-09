@@ -15,56 +15,51 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.generator;
+package com.yahoo.ycsb.generator.operationorder;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 
 /**
  * This class takes a file with {@link com.yahoo.ycsb.DB} operations and returns one after another.
  */
-public class OperationOrderRecreator extends Generator<String> {
+public class OperationOrderRecreator extends OperationOrderGenerator {
 
-  private int counter = 0;
-  private List<String> operations;
+  private Iterator<String> operations;
 
   /**
    * Takes the file with the operations and stores it for usage over {@code nextValue()} and {@code lastValue()}.
    *
    * @param outputDirectory where the file with the {@link com.yahoo.ycsb.DB} operations is located.
    */
-  public OperationOrderRecreator(String outputDirectory) {
-    try {
-      String filename = outputDirectory + OperationOrderGenerator.OPERATION_FILE_NAME;
-      operations = Files.readAllLines(Paths.get(filename),
-          Charset.forName(new FileReader(filename).getEncoding()));
-    } catch (IOException e) {
-      operations = new ArrayList<>();
-      e.printStackTrace();
-    }
+  public OperationOrderRecreator(String outputDirectory) throws IOException {
+    super(outputDirectory);
+
+    String filename = outputDirectory + OPERATION_FILE_NAME;
+    operations = Files.readAllLines(Paths.get(filename),
+        Charset.forName(new FileReader(filename).getEncoding())).iterator();
+  }
+
+  @Override
+  String getExceptionMessage() {
+    return "Operation order file is not present.";
+  }
+
+  @Override
+  boolean checkFiles(File directory, File operationsFile) {
+    return directory.exists() && operationsFile.exists();
   }
 
   @Override
   public String nextValue() {
-    if (operations.size() < counter) {
-      return operations.get(counter++);
-    } else if (!operations.isEmpty()) {
-      counter = 0;
-      return nextValue();
-    } else {
-      return "";
-    }
-  }
-
-  @Override
-  public String lastValue() {
-    if (counter > 0) {
-      return operations.get(counter - 1);
+    if (operations.hasNext()) {
+      lastOperation = operations.next();
+      return lastOperation;
     } else {
       return "";
     }

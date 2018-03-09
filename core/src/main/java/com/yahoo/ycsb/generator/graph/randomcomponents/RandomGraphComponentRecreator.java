@@ -15,7 +15,9 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.generator.graph;
+package com.yahoo.ycsb.generator.graph.randomcomponents;
+
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,10 +27,10 @@ import java.nio.file.Files;
 import java.util.ListIterator;
 
 /**
- * Class to recreate the saved value produced by a {@link RandomGraphComponentGenerator}, stored in a file in the
+ * Class to recreate the saved value produced by a {@link RandomGraphComponentRecorder}, stored in a file in the
  * given directory.
  */
-public class RandomGraphComponentRecreator extends RandomGraphComponentChooser {
+public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator {
 
   private ListIterator<String> nodeIterator;
   private ListIterator<String> edgeIterator;
@@ -45,9 +47,8 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentChooser {
   }
 
   @Override
-  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) {
-    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists() &&
-        componentFile.exists();
+  String getExceptionMessage() {
+    return "Random graph component files are not present.";
   }
 
   @Override
@@ -63,6 +64,12 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentChooser {
   @Override
   int randomNodeOrEdge() {
     return (int) getNextValue(componentIterator);
+  }
+
+  @Override
+  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) {
+    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists() &&
+        componentFile.exists();
   }
 
   private ListIterator<String> getIterator(File file) throws IOException {

@@ -15,7 +15,12 @@
  * LICENSE file.
  */
 
-package com.yahoo.ycsb.generator.graph;
+package com.yahoo.ycsb.generator.graph.randomcomponents;
+
+import com.yahoo.ycsb.generator.graph.Edge;
+import com.yahoo.ycsb.generator.graph.GraphComponent;
+import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
+import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +28,7 @@ import java.io.IOException;
 /**
  * Abstract class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
  */
-public abstract class RandomGraphComponentChooser {
+public abstract class RandomGraphComponentGenerator {
 
   private static final int NODE = 0;
   private static final int EDGE = 1;
@@ -32,7 +37,7 @@ public abstract class RandomGraphComponentChooser {
   private final File componentFile;
   private GraphDataGenerator graphDataGenerator;
 
-  RandomGraphComponentChooser(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
+  RandomGraphComponentGenerator(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
     this.graphDataGenerator = graphDataGenerator;
 
     File directoryFile = new File(directory);
@@ -40,21 +45,9 @@ public abstract class RandomGraphComponentChooser {
     edgeFile = new File(directory + "edgeIds.txt");
     componentFile = new File(directory + "componentIds.txt");
 
-    checkFilesAvailable(directoryFile, nodeFile, edgeFile, componentFile);
-  }
-
-  protected abstract boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException;
-
-  File getNodeFile() {
-    return nodeFile;
-  }
-
-  File getEdgeFile() {
-    return edgeFile;
-  }
-
-  File getComponentFile() {
-    return componentFile;
+    if (!checkFilesAvailable(directoryFile, nodeFile, edgeFile, componentFile)) {
+      throw new IOException(getExceptionMessage());
+    }
   }
 
   public final GraphComponent choose() {
@@ -68,17 +61,33 @@ public abstract class RandomGraphComponentChooser {
     }
   }
 
+  public final Node chooseRandomNode() {
+    long id = chooseRandomNodeId();
+
+    return graphDataGenerator.getNode(id);
+  }
+
+  File getNodeFile() {
+    return nodeFile;
+  }
+
+  File getEdgeFile() {
+    return edgeFile;
+  }
+
+  File getComponentFile() {
+    return componentFile;
+  }
+
   private Edge chooseRandomEdge() {
     long id = chooseRandomEdgeId();
 
     return graphDataGenerator.getEdge(id);
   }
 
-  public final Node chooseRandomNode() {
-    long id = chooseRandomNodeId();
+  abstract String getExceptionMessage();
 
-    return graphDataGenerator.getNode(id);
-  }
+  abstract boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException;
 
   abstract long chooseRandomNodeId();
 
