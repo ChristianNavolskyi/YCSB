@@ -22,7 +22,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Iterator;
 
 /**
@@ -35,14 +34,13 @@ public class OperationOrderRecreator extends OperationOrderGenerator {
   /**
    * Takes the file with the operations and stores it for usage over {@code nextValue()} and {@code lastValue()}.
    *
-   * @param outputDirectory where the file with the {@link com.yahoo.ycsb.DB} operations is located.
+   * @param inputDirectory where the file with the {@link com.yahoo.ycsb.DB} operations is located.
    */
-  public OperationOrderRecreator(String outputDirectory) throws IOException {
-    super(outputDirectory);
+  public OperationOrderRecreator(String inputDirectory) throws IOException {
+    super(inputDirectory);
 
-    String filename = outputDirectory + OPERATION_FILE_NAME;
-    operations = Files.readAllLines(Paths.get(filename),
-        Charset.forName(new FileReader(filename).getEncoding())).iterator();
+    operations = Files.readAllLines(getOperationFile().toPath(),
+        Charset.forName(new FileReader(getOperationFile()).getEncoding())).iterator();
   }
 
   @Override
