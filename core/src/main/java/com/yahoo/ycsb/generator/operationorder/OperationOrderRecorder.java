@@ -23,7 +23,7 @@ public class OperationOrderRecorder extends OperationOrderGenerator {
   public OperationOrderRecorder(String outputDirectory, DiscreteGenerator discreteGenerator) throws IOException {
     super(outputDirectory);
 
-    fileWriter = new FileWriter(outputDirectory + OPERATION_FILE_NAME, true);
+    fileWriter = new FileWriter(getOperationFile(), true);
     this.discreteGenerator = discreteGenerator;
   }
 

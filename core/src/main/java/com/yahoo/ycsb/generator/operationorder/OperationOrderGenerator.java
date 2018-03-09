@@ -27,14 +27,14 @@ import java.io.IOException;
  * The value of that String is saves in a operations.txt file for later reproduction.
  */
 public abstract class OperationOrderGenerator extends Generator<String> {
-  static final String OPERATION_FILE_NAME = "operations.txt";
+  private final File operationFile;
   String lastOperation;
 
-  public OperationOrderGenerator(String outputDirectory) throws IOException {
+  OperationOrderGenerator(String outputDirectory) throws IOException {
     File directory = new File(outputDirectory);
-    File operationsFile = new File(outputDirectory + OPERATION_FILE_NAME);
+    operationFile = new File(outputDirectory + "operations.txt");
 
-    if (!checkFiles(directory, operationsFile)) {
+    if (!checkFiles(directory, operationFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
@@ -42,6 +42,10 @@ public abstract class OperationOrderGenerator extends Generator<String> {
   @Override
   public final String lastValue() {
     return lastOperation;
+  }
+
+  File getOperationFile() {
+    return operationFile;
   }
 
   abstract String getExceptionMessage();
