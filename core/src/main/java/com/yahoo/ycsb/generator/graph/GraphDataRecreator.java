@@ -17,7 +17,6 @@
 
 package com.yahoo.ycsb.generator.graph;
 
-import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 
@@ -25,15 +24,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.yahoo.ycsb.generator.graph.GraphDataRecorder.getKeyString;
 
 /**
  * This class takes a data set of graph data and reproduces it.
@@ -43,6 +39,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
   private final List<Graph> graphs;
 
   private int currentPosition = -1;
+  private Graph lastReproducedGraph;
 
   public GraphDataRecreator(String inputDirectory) throws IOException {
     super(inputDirectory);
@@ -75,10 +72,13 @@ public class GraphDataRecreator extends GraphDataGenerator {
 
   @Override
   Graph createNextValue() {
-    if (isCurrentPositionValid()) {
-      return graphs.get(++currentPosition);
+    if (hasValueAtNextPosition()) {
+      lastReproducedGraph = graphs.get(++currentPosition);
+    } else {
+      lastReproducedGraph = new Graph();
     }
-    return null;
+
+    return lastReproducedGraph;
   }
 
   @Override
@@ -88,10 +88,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
 
   @Override
   public Graph lastValue() {
-    if (isCurrentPositionValid()) {
-      return graphs.get(currentPosition);
-    }
-    return null;
+    return lastReproducedGraph;
   }
 
   private Map<Long, Node> parseNodes(File nodeFile) {
@@ -140,7 +137,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return Edge.recreateEdge(values, nodeMap);
   }
 
-  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeList) {
+  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap) {
     long lastNodeId = -1;
     List<Graph> result = new ArrayList<>();
 
@@ -148,73 +145,40 @@ public class GraphDataRecreator extends GraphDataGenerator {
     Node endNode;
     Graph graph;
 
-    for (long i = 0; i < edgeList.size(); i++) {
-      Edge edge = edgeList.get(i);
+    for (long i = 0; i < edgeMap.size(); i++) {
+      Edge edge = edgeMap.get(i);
       graph = new Graph();
 
       startNode = edge.getStartNode();
-      endNode = edge.getEndNode();
 
       if (startNode.getId() > lastNodeId) {
         graph.addNode(startNode);
-        result.add(graph);
         lastNodeId = startNode.getId();
+        result.add(graph);
+        graph = new Graph();
       }
+
+      endNode = edge.getEndNode();
 
       if (endNode.getId() > lastNodeId) {
         graph.addNode(endNode);
         graph.addEdge(edge);
+        lastNodeId = endNode.getId();
 
-        if (edgeList.size() > i + 1 && edgeList.get(i + 1).getId() <= lastNodeId) {
-          Edge nextEdge = edgeList.get(i + 1);
+        if (edgeMap.size() > i + 1 && edgeMap.get(i + 1).getEndNode().getId() <= lastNodeId) {
+          Edge nextEdge = edgeMap.get(i + 1);
           graph.addEdge(nextEdge);
           i++;
         }
 
         result.add(graph);
-        lastNodeId = endNode.getId();
       }
     }
 
     return result;
   }
 
-  private boolean isCurrentPositionValid() {
-    return graphs != null && graphs.size() > currentPosition;
-  }
-
-  /**
-   * Adapter class to convert ByteIterator into and back from Json.
-   */
-  public static class ByteIteratorAdapter implements JsonSerializer<ByteIterator>, JsonDeserializer<ByteIterator> {
-
-    private final String typeIdentifier = "type";
-    private final String propertyIdentifier = "properties";
-
-    @Override
-    public JsonElement serialize(ByteIterator byteIterator,
-                                 Type type,
-                                 JsonSerializationContext jsonSerializationContext) {
-      JsonObject result = new JsonObject();
-      result.add(typeIdentifier, new JsonPrimitive(byteIterator.getClass().getName()));
-      result.add(propertyIdentifier, jsonSerializationContext.serialize(byteIterator));
-
-      return result;
-    }
-
-    @Override
-    public ByteIterator deserialize(JsonElement jsonElement,
-                                    Type type,
-                                    JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-      JsonObject jsonObject = jsonElement.getAsJsonObject();
-      String typeString = jsonObject.get(typeIdentifier).getAsString();
-      JsonElement element = jsonObject.get(propertyIdentifier);
-
-      try {
-        return jsonDeserializationContext.deserialize(element, Class.forName(typeString));
-      } catch (ClassNotFoundException e) {
-        throw new JsonParseException("Could not find class " + typeString, e);
-      }
-    }
+  private boolean hasValueAtNextPosition() {
+    return graphs != null && graphs.size() > currentPosition + 1;
   }
 }

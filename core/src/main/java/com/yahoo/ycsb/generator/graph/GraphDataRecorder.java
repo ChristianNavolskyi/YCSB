@@ -136,7 +136,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
       graph.addNode(this.design);
       graph.addEdge(new Edge("builds", factory, design));
     } else if (productPerOrderCounter == 0) {
-      currentOrder = new Node("order");
+      currentOrder = new Node("Order");
       graph.addNode(currentOrder);
       graph.addEdge(new Edge("ordered", orders, currentOrder));
       productPerOrderCounter = productsPerOrder;
@@ -144,7 +144,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
       product = new Node("Product");
       graph.addNode(product);
       graph.addEdge(new Edge("produced", machine, product));
-      graph.addEdge(new Edge("ordered", currentOrder, product));
+      graph.addEdge(new Edge("includes", currentOrder, product));
       shouldCreateProduct = false;
     } else if (shouldCreateDate) {
       Node date = new Node("Date");
