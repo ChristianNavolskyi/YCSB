@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -17,7 +17,9 @@
 
 package com.yahoo.ycsb.generator.operationorder;
 
+import com.yahoo.ycsb.generator.DiscreteGenerator;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.StoringGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,22 +28,31 @@ import java.io.IOException;
  * This class generates {@link String}s which represent operations for a {@link com.yahoo.ycsb.DB}.
  * The value of that String is saves in a operations.txt file for later reproduction.
  */
-public abstract class OperationOrderGenerator extends Generator<String> {
-  private static final String operationFileName = "operations.txt";
+public abstract class OperationOrderGenerator extends Generator<String> implements StoringGenerator {
 
+  private static final String operationFileName = "operations.txt";
   private final File operationFile;
+
   String lastOperation;
 
   OperationOrderGenerator(String outputDirectory) throws IOException {
     File directory = new File(outputDirectory);
-    operationFile = new File(outputDirectory + operationFileName);
+    operationFile = new File(outputDirectory, operationFileName);
 
     if (!checkFiles(directory, operationFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static boolean checkDataPresent(String outputDirectory) {
+  public static OperationOrderGenerator create(String directory, DiscreteGenerator operationGenerator) throws IOException {
+    if (checkDataPresent(directory)) {
+      return new OperationOrderRecreator(directory);
+    } else {
+      return new OperationOrderRecorder(directory, operationGenerator);
+    }
+  }
+
+  private static boolean checkDataPresent(String outputDirectory) {
     return new File(outputDirectory + operationFileName).exists();
   }
 
@@ -50,11 +61,7 @@ public abstract class OperationOrderGenerator extends Generator<String> {
     return lastOperation;
   }
 
-  File getOperationFile() {
+  final File getOperationFile() {
     return operationFile;
   }
-
-  abstract String getExceptionMessage();
-
-  abstract boolean checkFiles(File directory, File operationsFile) throws IOException;
 }

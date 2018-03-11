@@ -37,8 +37,8 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
   private ListIterator<String> componentIterator;
 
 
-  public RandomGraphComponentRecreator(String inputDirectory,
-                                       GraphDataGenerator graphDataGenerator) throws IOException {
+  RandomGraphComponentRecreator(String inputDirectory,
+                                GraphDataGenerator graphDataGenerator) throws IOException {
     super(inputDirectory, graphDataGenerator);
 
     nodeIterator = getIterator(getNodeFile());
@@ -47,7 +47,7 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Random graph component files are not present.";
   }
 
@@ -67,9 +67,15 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
   }
 
   @Override
-  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) {
-    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists() &&
-        componentFile.exists();
+  public boolean checkFiles(File directory, File... files) {
+    boolean directoryPresent = directory.exists() && directory.isDirectory();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.exists();
+    }
+
+    return directoryPresent && filesCreated;
   }
 
   private ListIterator<String> getIterator(File file) throws IOException {

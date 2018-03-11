@@ -60,7 +60,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   private Map<String, FileWriter> fileWriterMap;
 
-  public GraphDataRecorder(String outputDirectory, boolean isRunPhase, Properties properties) throws IOException {
+  GraphDataRecorder(String outputDirectory, boolean isRunPhase, Properties properties) throws IOException {
     super(outputDirectory, isRunPhase);
 
     testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
@@ -72,7 +72,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Could not create graph data files or they are already present.";
   }
 
@@ -86,13 +86,15 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
-  boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile) {
-    try {
-      return (directoryFile.exists() || directoryFile.mkdirs()) && nodeFile.createNewFile() && edgeFile
-          .createNewFile();
-    } catch (IOException cause) {
-      throw new RuntimeException("Could not create files.", cause);
+  public boolean checkFiles(File directory, File... files) throws IOException {
+    boolean directoryPresent = directory.exists() || directory.mkdirs();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.createNewFile();
     }
+
+    return directoryPresent && filesCreated;
   }
 
   @Override

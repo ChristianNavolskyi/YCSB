@@ -14,7 +14,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class OperationOrderRecreatorTest {
+public class TestOperationOrderRecreator {
 
   private static String inputDirectory = "src"
       + File.separator
@@ -41,7 +41,7 @@ public class OperationOrderRecreatorTest {
 
   @Test
   public void readLines() throws IOException {
-    File file = new File(inputDirectory + "operations.txt");
+    File file = new File(inputDirectory, "operations.txt");
     List<String> operations = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
 
     for (String operation : operations) {

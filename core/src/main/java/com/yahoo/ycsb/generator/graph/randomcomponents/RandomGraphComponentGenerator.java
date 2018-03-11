@@ -17,6 +17,8 @@
 
 package com.yahoo.ycsb.generator.graph.randomcomponents;
 
+import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.StoringGenerator;
 import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.GraphComponent;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
@@ -28,7 +30,7 @@ import java.io.IOException;
 /**
  * Abstract class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
  */
-public abstract class RandomGraphComponentGenerator {
+public abstract class RandomGraphComponentGenerator extends Generator<GraphComponent> implements StoringGenerator {
 
   private static final int NODE = 0;
   private static final int EDGE = 1;
@@ -40,37 +42,57 @@ public abstract class RandomGraphComponentGenerator {
   private final File edgeFile;
   private final File componentFile;
   private final GraphDataGenerator graphDataGenerator;
+  private GraphComponent lastGraphComponent;
 
   RandomGraphComponentGenerator(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
     this.graphDataGenerator = graphDataGenerator;
 
     File directoryFile = new File(directory);
 
-    nodeFile = new File(directory + nodeFileName);
-    edgeFile = new File(directory + edgeFileName);
+    nodeFile = new File(directory, nodeFileName);
+    edgeFile = new File(directory, edgeFileName);
 
-    componentFile = new File(directory + componentFileName);
+    componentFile = new File(directory, componentFileName);
 
-    if (!checkFilesAvailable(directoryFile, nodeFile, edgeFile, componentFile)) {
+    if (!checkFiles(directoryFile, nodeFile, edgeFile, componentFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static boolean checkDataPresent(String outputDirectory) {
-    return new File(outputDirectory + nodeFileName).exists()
-        && new File(outputDirectory + edgeFileName).exists()
-        && new File(outputDirectory + componentFileName).exists();
+  //TODO move to factoryclass (or not?)
+  public static RandomGraphComponentGenerator create(String directory, GraphDataGenerator graphDataGenerator) throws IOException {
+    if (checkDataPresent(directory)) {
+      return new RandomGraphComponentRecreator(directory, graphDataGenerator);
+    } else {
+      return new RandomGraphComponentRecorder(directory, graphDataGenerator);
+    }
   }
 
-  public final GraphComponent choose() {
+  private static boolean checkDataPresent(String directory) {
+    return new File(directory, nodeFileName).exists()
+        && new File(directory, edgeFileName).exists()
+        && new File(directory, componentFileName).exists();
+  }
+
+  @Override
+  public final GraphComponent nextValue() {
     switch (randomNodeOrEdge()) {
     case NODE:
-      return chooseRandomNode();
+      lastGraphComponent = chooseRandomNode();
+      break;
     case EDGE:
-      return chooseRandomEdge();
+      lastGraphComponent = chooseRandomEdge();
+      break;
     default:
       return null;
     }
+
+    return lastGraphComponent;
+  }
+
+  @Override
+  public final GraphComponent lastValue() {
+    return lastGraphComponent;
   }
 
   public final Node chooseRandomNode() {
@@ -96,10 +118,6 @@ public abstract class RandomGraphComponentGenerator {
 
     return graphDataGenerator.getEdge(id);
   }
-
-  abstract String getExceptionMessage();
-
-  abstract boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException;
 
   abstract long chooseRandomNodeId();
 

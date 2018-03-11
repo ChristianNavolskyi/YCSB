@@ -125,7 +125,7 @@ public class RandomGraphComponentRecorderTest {
     boolean hadEdge = false;
 
     while (!hadNode || !hadEdge) {
-      GraphComponent randomComponent = randomGraphComponentRecorder.choose();
+      GraphComponent randomComponent = randomGraphComponentRecorder.nextValue();
 
       assertNotNull(randomComponent);
 

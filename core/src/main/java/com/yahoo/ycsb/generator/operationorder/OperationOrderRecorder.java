@@ -20,7 +20,7 @@ public class OperationOrderRecorder extends OperationOrderGenerator {
    * @param discreteGenerator to generate the values to return and store.
    * @throws IOException if something is wrong with the output file/directory.
    */
-  public OperationOrderRecorder(String outputDirectory, DiscreteGenerator discreteGenerator) throws IOException {
+  OperationOrderRecorder(String outputDirectory, DiscreteGenerator discreteGenerator) throws IOException {
     super(outputDirectory);
 
     fileWriter = new FileWriter(getOperationFile(), true);
@@ -43,12 +43,19 @@ public class OperationOrderRecorder extends OperationOrderGenerator {
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Could not create operation order file or it already present.";
   }
 
   @Override
-  boolean checkFiles(File directory, File operationsFile) throws IOException {
-    return (directory.exists() || directory.mkdirs()) && operationsFile.createNewFile();
+  public boolean checkFiles(File directory, File... files) throws IOException {
+    boolean directoryPresent = directory.exists() || directory.mkdirs();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.createNewFile();
+    }
+
+    return directoryPresent && filesCreated;
   }
 }

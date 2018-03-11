@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.Generator;
+import com.yahoo.ycsb.generator.StoringGenerator;
 
 import java.io.File;
 import java.io.FileReader;
@@ -33,14 +34,14 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Abstract class to generate {@link Graph}s and return {@link Node}s and {@link Edge}s given their ids.
  */
-public abstract class GraphDataGenerator extends Generator<Graph> {
+public abstract class GraphDataGenerator extends Generator<Graph> implements StoringGenerator {
 
-  public static final String KEY_IDENTIFIER = "Key";
-
+  private static final String keyIdentifier = "Key";
   private static final String loadEdgeFileName = Edge.EDGE_IDENTIFIER + "load.json";
   private static final String loadNodeFileName = Node.NODE_IDENTIFIER + "load.json";
   private static final String runEdgeFileName = Edge.EDGE_IDENTIFIER + "run.json";
@@ -55,6 +56,8 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
   Type valueType;
   Graph lastValue = new Graph();
 
+  //TODO more tests for new boolean
+
   /**
    * @param directory  in which the files for nodes and edges should be stored/restored from.
    * @param isRunPhase presets node and edge ids if is run phase.
@@ -67,35 +70,64 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     valueType = new TypeToken<Map<String, ByteIterator>>() {
     }.getType();
 
-    if (!directory.endsWith(File.separator)) {
-      directory = directory + File.separator;
-    }
-
     File directoryFile = new File(directory);
 
     if (isRunPhase) {
-      nodeFile = new File(directory + runNodeFileName);
-      edgeFile = new File(directory + runEdgeFileName);
+      nodeFile = new File(directory, runNodeFileName);
+      edgeFile = new File(directory, runEdgeFileName);
 
-      Node.presetId(getLastId(nodeFile));
-      Edge.presetId(getLastId(edgeFile));
+      //TODO pass out to implementing class for which file should be present or not. If no load files present just skip.
+
+      if (checkLoadDataPresent(directory)) {
+        File loadNodeFile = new File(directory, loadNodeFileName);
+        File loadEdgeFile = new File(directory, loadEdgeFileName);
+
+        Node.presetId(getLastId(loadNodeFile));
+        Edge.presetId(getLastId(loadEdgeFile));
+      }
+
     } else {
-      nodeFile = new File(directory + loadNodeFileName);
-      edgeFile = new File(directory + loadEdgeFileName);
+      nodeFile = new File(directory, loadNodeFileName);
+      edgeFile = new File(directory, loadEdgeFileName);
     }
 
-    if (!necessaryFilesAvailable(directoryFile, nodeFile, edgeFile)) {
+    if (!checkFiles(directoryFile, nodeFile, edgeFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static boolean checkDataPresent(String outputDirectory) {
-    return new File(outputDirectory + loadNodeFileName).exists()
-        && new File(outputDirectory + loadEdgeFileName).exists();
+  public static GraphDataGenerator create(String directory, boolean isRunPhase, Properties properties) throws IOException {
+    boolean loadDataPresent = checkLoadDataPresent(directory);
+    boolean runDataPresent = checkRunDataPresent(directory);
+
+//  load runData isRun return
+//  0    0       0     recorder
+//  0    0       1     recorder
+//  0    1       0     recorder
+//  0    1       1     recreator ==> KV-Diagram leads to recreate =
+//  1    0       0     recreator                         isRunPhase && runDataPresent || !isRunPhase && loadDataPresent
+//  1    0       1     recorder
+//  1    1       0     recreator
+//  1    1       1     recreator
+    if (isRunPhase && runDataPresent || !isRunPhase && loadDataPresent) {
+      return new GraphDataRecreator(directory, isRunPhase);
+    } else {
+      return new GraphDataRecorder(directory, isRunPhase, properties);
+    }
   }
 
   static String getKeyString(String key) {
-    return KEY_IDENTIFIER + "-" + key + "-";
+    return keyIdentifier + "-" + key + "-";
+  }
+
+  private static boolean checkLoadDataPresent(String directory) {
+    return new File(directory, loadNodeFileName).exists()
+        && new File(directory, loadEdgeFileName).exists();
+  }
+
+  private static boolean checkRunDataPresent(String directory) {
+    return new File(directory, runNodeFileName).exists()
+        && new File(directory, runEdgeFileName).exists();
   }
 
   @Override
@@ -154,9 +186,5 @@ public abstract class GraphDataGenerator extends Generator<Graph> {
     }
   }
 
-  abstract String getExceptionMessage();
-
   abstract Graph createNextValue() throws IOException;
-
-  abstract boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile);
 }

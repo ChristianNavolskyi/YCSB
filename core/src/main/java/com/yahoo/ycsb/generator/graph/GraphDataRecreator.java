@@ -39,7 +39,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
   private final List<Graph> graphs;
   private int currentPosition = -1;
 
-  public GraphDataRecreator(String inputDirectory, boolean isRunPhase) throws IOException {
+  GraphDataRecreator(String inputDirectory, boolean isRunPhase) throws IOException {
     super(inputDirectory, isRunPhase);
 
     Map<Long, Node> nodes = parseNodes(getNodeFile());
@@ -48,7 +48,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Graph data files aren't present.";
   }
 
@@ -64,8 +64,15 @@ public class GraphDataRecreator extends GraphDataGenerator {
   }
 
   @Override
-  boolean necessaryFilesAvailable(File directoryFile, File nodeFile, File edgeFile) {
-    return directoryFile.exists() && directoryFile.isDirectory() && nodeFile.exists() && edgeFile.exists();
+  public boolean checkFiles(File directory, File... files) {
+    boolean directoryPresent = directory.exists() && directory.isDirectory();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.exists();
+    }
+
+    return directoryPresent && filesCreated;
   }
 
   private List<JsonReader> getJsonReaders(File file) throws IOException {

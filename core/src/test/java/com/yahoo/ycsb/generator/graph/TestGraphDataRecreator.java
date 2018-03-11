@@ -10,7 +10,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class GraphDataRecreatorTest {
+public class TestGraphDataRecreator {
 
   private static final int numberOfNodes = 100;
   private static GraphDataRecreator graphDataRecreator;

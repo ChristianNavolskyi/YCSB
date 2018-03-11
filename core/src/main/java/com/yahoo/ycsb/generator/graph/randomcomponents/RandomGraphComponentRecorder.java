@@ -37,8 +37,8 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
   private FileWriter componentFileWriter;
   private Random random;
 
-  public RandomGraphComponentRecorder(String outputDirectory,
-                                      GraphDataGenerator graphDataGenerator) throws IOException {
+  RandomGraphComponentRecorder(String outputDirectory,
+                               GraphDataGenerator graphDataGenerator) throws IOException {
     super(outputDirectory, graphDataGenerator);
 
     nodeFileWriter = new FileWriter(getNodeFile());
@@ -49,13 +49,19 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
   }
 
   @Override
-  protected boolean checkFilesAvailable(File directoryFile, File nodeFile, File edgeFile, File componentFile) throws IOException {
-    return (directoryFile.exists() || directoryFile.mkdirs()) && nodeFile.createNewFile() && edgeFile.createNewFile()
-        && componentFile.createNewFile();
+  public boolean checkFiles(File directory, File... files) throws IOException {
+    boolean directoryPresent = directory.exists() || directory.mkdirs();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.createNewFile();
+    }
+
+    return directoryPresent && filesCreated;
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Could not create random graph component files or they are already present.";
   }
 

@@ -18,7 +18,7 @@ import java.util.Objects;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class OperationOrderRecorderTest {
+public class TestOperationOrderRecorder {
 
   private static String outputDirectory;
   private static OperationOrderRecorder operationOrderRecorder;
@@ -26,7 +26,7 @@ public class OperationOrderRecorderTest {
 
   @BeforeClass
   public static void setUp() throws IOException {
-    outputDirectory = System.getProperty("user.dir") + File.separator + "test" + File.separator;
+    outputDirectory = System.getProperty("user.dir") + File.separator + "test";
     FileUtils.deleteDirectory(outputDirectory);
 
     discreteGenerator = new DiscreteGenerator();
@@ -66,7 +66,7 @@ public class OperationOrderRecorderTest {
       operationOrderRecorder.nextValue();
     }
 
-    File file = new File(outputDirectory + "operations.txt");
+    File file = new File(outputDirectory, "operations.txt");
     List<String> operations = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
 
     assertEquals(numberOfOperations, operations.size());

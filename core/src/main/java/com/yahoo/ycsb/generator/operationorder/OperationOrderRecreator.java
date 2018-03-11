@@ -36,7 +36,7 @@ public class OperationOrderRecreator extends OperationOrderGenerator {
    *
    * @param inputDirectory where the file with the {@link com.yahoo.ycsb.DB} operations is located.
    */
-  public OperationOrderRecreator(String inputDirectory) throws IOException {
+  OperationOrderRecreator(String inputDirectory) throws IOException {
     super(inputDirectory);
 
     operations = Files.readAllLines(getOperationFile().toPath(),
@@ -44,13 +44,20 @@ public class OperationOrderRecreator extends OperationOrderGenerator {
   }
 
   @Override
-  String getExceptionMessage() {
+  public String getExceptionMessage() {
     return "Operation order file is not present.";
   }
 
   @Override
-  boolean checkFiles(File directory, File operationsFile) {
-    return directory.exists() && operationsFile.exists();
+  public boolean checkFiles(File directory, File... files) {
+    boolean directoryPresent = directory.exists() && directory.isDirectory();
+    boolean filesCreated = true;
+
+    for (File file : files) {
+      filesCreated = filesCreated && file.exists();
+    }
+
+    return directoryPresent && filesCreated;
   }
 
   @Override

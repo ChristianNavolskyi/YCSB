@@ -21,11 +21,7 @@ import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.graph.*;
 import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentGenerator;
-import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecorder;
-import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecreator;
 import com.yahoo.ycsb.generator.operationorder.OperationOrderGenerator;
-import com.yahoo.ycsb.generator.operationorder.OperationOrderRecorder;
-import com.yahoo.ycsb.generator.operationorder.OperationOrderRecreator;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +30,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import static com.yahoo.ycsb.generator.graph.GraphDataRecorder.KEY_IDENTIFIER;
 import static com.yahoo.ycsb.workloads.CoreWorkload.*;
 import static java.io.File.separatorChar;
 
@@ -50,10 +45,7 @@ import static java.io.File.separatorChar;
  */
 public class GraphWorkload extends Workload {
 
-  //TODO write tests
-  //TODO Mechanism to retrieve data from files and insert them in the correct order (nodes and corresponding edges)
-
-  private static final String DATA_SET_DIRECTORY_PROPERTY = "dataSetDirectory";
+  public static final String DATA_SET_DIRECTORY_PROPERTY = "dataSetDirectory";
   private static final String DATA_SET_DIRECTORY_DEFAULT = System.getProperty("user.dir")
       + separatorChar
       + "benchmarkingData"
@@ -68,20 +60,8 @@ public class GraphWorkload extends Workload {
   private OperationOrderGenerator orderGenerator;
   private RandomGraphComponentGenerator randomGraphComponentGenerator;
 
-  // Modes:
-  // 2 - generate dataSet and run benchmark         - !dataSetPresent
-  // 3 - only run benchmark with supplied dataSet   - dataSetPresent
-
   public static int getNodeByteSize() {
     return nodeByteSize;
-  }
-
-  private static int getKeyFromKeyString(String documentValue) {
-    String result = documentValue.replaceAll("-", "");
-    result = result.replaceAll(KEY_IDENTIFIER, "");
-    result = result.split("\\{")[0];
-
-    return Integer.valueOf(result);
   }
 
   private static String getOutputDirectory(Properties properties) throws WorkloadException {
@@ -94,14 +74,12 @@ public class GraphWorkload extends Workload {
     File directory = new File(outputDirectory);
 
     if (!directory.exists() && !directory.mkdirs()) {
-      throw new WorkloadException("Could not read output directory for files with path: " + outputDirectory);
+      throw new WorkloadException(outputDirectory + " does not exist and cannot be created.");
     }
 
     return outputDirectory;
   }
 
-  //TODO Two modes one for only generating data and one for loading that data iff present (else generates) and
-  // running a benchmark
   @Override
   public void init(Properties properties) throws WorkloadException {
     super.init(properties);
@@ -110,31 +88,15 @@ public class GraphWorkload extends Workload {
     maxScanLength = Integer.parseInt(properties.getProperty(MAX_SCAN_LENGTH_PROPERTY,
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 
-    Mode mode = Mode.getMode(properties);
     String outputDirectory = getOutputDirectory(properties);
+    boolean isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
 
-    System.out.println("Running graph workload in " + mode.toString() + " mode");
-
-    //TODO distinguish between load and run and set values accordingly.
     try {
-      switch (mode) {
-      case RUN_BENCHMARK_LOADING:
-        graphDataGenerator = new GraphDataRecreator(outputDirectory, false);
-        break;
-      case RUN_BENCHMARK_RUNNING:
-        graphDataGenerator = new GraphDataRecreator(outputDirectory, true);
-        randomGraphComponentGenerator = new RandomGraphComponentRecreator(outputDirectory, graphDataGenerator);
-        orderGenerator = new OperationOrderRecreator(outputDirectory);
-        break;
-      case GENERATE_DATA_AND_RUN_BENCHMARK_LOADING:
-        graphDataGenerator = new GraphDataRecorder(outputDirectory, false, properties);
-        break;
-      case GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING:
-        graphDataGenerator = new GraphDataRecorder(outputDirectory, true, properties);
-        randomGraphComponentGenerator = new RandomGraphComponentRecorder(outputDirectory, graphDataGenerator);
-        orderGenerator = new OperationOrderRecorder(outputDirectory, createOperationGenerator(properties));
-        break;
-      }
+      //TODO ditch modes and create a Generator.create(outputDirectory(, isRunPhase)) method the get the right one
+      // also print the status of each. also test these new constructors.
+      graphDataGenerator = GraphDataGenerator.create(outputDirectory, isRunPhase, properties);
+      randomGraphComponentGenerator = RandomGraphComponentGenerator.create(outputDirectory, graphDataGenerator);
+      orderGenerator = OperationOrderGenerator.create(outputDirectory, createOperationGenerator(properties));
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -145,6 +107,14 @@ public class GraphWorkload extends Workload {
     Graph graph = graphDataGenerator.nextValue();
 
     return insertGraphComponents(db, graph);
+  }
+
+  @Override
+  public boolean doTransaction(DB db, Object threadState) {
+    //TODO wrong mode is selected by first run.
+    String nextOperation = orderGenerator.nextValue();
+
+    return executeOperation(nextOperation, db, graphDataGenerator);
   }
 
   private boolean insertGraphComponents(DB db, Graph graph) {
@@ -162,14 +132,6 @@ public class GraphWorkload extends Workload {
       }
     }
     return true;
-  }
-
-  @Override
-  public boolean doTransaction(DB db, Object threadState) {
-    //TODO wrong mode is selected by first run.
-    String nextOperation = orderGenerator.nextValue();
-
-    return executeOperation(nextOperation, db, graphDataGenerator);
   }
 
   private boolean executeOperation(String operation, DB db, Generator<Graph> generator) {
@@ -219,7 +181,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionRead(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -235,7 +197,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionUpdate(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -254,7 +216,7 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionScan(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.choose();
+    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
@@ -311,49 +273,5 @@ public class GraphWorkload extends Workload {
     printMap(values);
 
     return db.insert(edge.getComponentTypeIdentifier(), String.valueOf(edge.getId()), values).isOk();
-  }
-
-  private enum Mode {
-    RUN_BENCHMARK_LOADING,
-    RUN_BENCHMARK_RUNNING,
-    GENERATE_DATA_AND_RUN_BENCHMARK_LOADING,
-    GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING;
-
-    static Mode getMode(Properties properties) throws WorkloadException {
-      boolean isRunPhase = checkIfRunPhase(properties);
-      boolean benchmarkingDataPresent = checkBenchmarkingDataPresent(properties, isRunPhase);
-
-      if (benchmarkingDataPresent) {
-        if (isRunPhase) {
-          return RUN_BENCHMARK_RUNNING;
-        } else {
-          return RUN_BENCHMARK_LOADING;
-        }
-      } else {
-        if (isRunPhase) {
-          return GENERATE_DATA_AND_RUN_BENCHMARK_RUNNING;
-        } else {
-          return GENERATE_DATA_AND_RUN_BENCHMARK_LOADING;
-        }
-      }
-    }
-
-    private static boolean checkIfRunPhase(Properties properties) {
-      return Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
-    }
-
-    //TODO check all files. Create files only when really created. Still call here?
-    private static boolean checkBenchmarkingDataPresent(Properties properties, boolean isRunPhase) throws WorkloadException {
-      String outputDirectory = getOutputDirectory(properties);
-
-      boolean everythingPresent = GraphDataGenerator.checkDataPresent(outputDirectory);
-
-      if (isRunPhase) {
-        everythingPresent = everythingPresent && RandomGraphComponentGenerator.checkDataPresent(outputDirectory);
-        everythingPresent = everythingPresent && OperationOrderGenerator.checkDataPresent(outputDirectory);
-      }
-
-      return everythingPresent;
-    }
   }
 }
