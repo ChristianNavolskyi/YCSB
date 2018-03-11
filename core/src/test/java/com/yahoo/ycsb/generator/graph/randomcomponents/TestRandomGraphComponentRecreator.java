@@ -4,7 +4,6 @@ package com.yahoo.ycsb.generator.graph.randomcomponents;
 import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
 import com.yahoo.ycsb.generator.graph.Node;
-import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecreator;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -20,7 +19,7 @@ import java.util.List;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
-public class RandomGraphComponentRecreatorTest {
+public class TestRandomGraphComponentRecreator {
 
   private static RandomGraphComponentRecreator randomGraphComponentRecreator;
   private static String directory = "src" + File.separator + "test" + File.separator + "resources";

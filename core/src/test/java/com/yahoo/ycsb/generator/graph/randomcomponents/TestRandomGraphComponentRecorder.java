@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
-public class RandomGraphComponentRecorderTest {
+public class TestRandomGraphComponentRecorder {
 
   private static String directory = System.getProperty("user.dir") + File.separator + "test";
   private static RandomGraphComponentRecorder randomGraphComponentRecorder;
