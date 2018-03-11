@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 public class RandomGraphComponentRecreatorTest {
 
   private static RandomGraphComponentRecreator randomGraphComponentRecreator;
-  private static String directory = "src" + File.separator + "test" + File.separator + "resources" + File.separator;
+  private static String directory = "src" + File.separator + "test" + File.separator + "resources";
   private static GraphDataGenerator graphDataGenerator;
 
   @BeforeClass

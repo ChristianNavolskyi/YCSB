@@ -4,7 +4,6 @@ import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.GraphComponent;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
 import com.yahoo.ycsb.generator.graph.Node;
-import com.yahoo.ycsb.generator.graph.randomcomponents.RandomGraphComponentRecorder;
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -16,7 +15,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,13 +25,14 @@ import static org.mockito.Mockito.when;
 
 public class RandomGraphComponentRecorderTest {
 
-  private static String directory = System.getProperty("user.dir") + File.separator + "test" + File.separator;
+  private static String directory = System.getProperty("user.dir") + File.separator + "test";
   private static RandomGraphComponentRecorder randomGraphComponentRecorder;
+  private static GraphDataGenerator generator;
   private int numberOfTimes = 100;
 
   @BeforeClass
   public static void initGenerator() throws IOException {
-    GraphDataGenerator generator = Mockito.mock(GraphDataGenerator.class);
+    generator = Mockito.mock(GraphDataGenerator.class);
     when(generator.getEdge(anyLong())).thenReturn(Edge.recreateEdge(1));
     when(generator.getNode(anyLong())).thenReturn(Node.recreateNode(1));
     FileUtils.deleteDirectory(directory);
@@ -51,6 +50,13 @@ public class RandomGraphComponentRecorderTest {
     assertEquals(3, file.listFiles().length);
   }
 
+  @Test(expected = IOException.class)
+  public void createWithFilesPresent() throws IOException {
+    new File(directory, "nodeIds.txt").createNewFile();
+
+    new RandomGraphComponentRecorder(directory, generator);
+  }
+
   @Test
   public void chooseRandomEdgeId() throws IOException {
     Edge.presetId(50);
@@ -60,9 +66,7 @@ public class RandomGraphComponentRecorderTest {
       results.add(randomGraphComponentRecorder.chooseRandomEdgeId());
     }
 
-    String fileName = directory + "edgeIds.txt";
-    List<String> lines = Files.readAllLines(Paths.get(fileName), Charset.forName(new FileReader(fileName)
-        .getEncoding()));
+    List<String> lines = getLines(new File(directory, "edgeIds.txt"));
 
     assertEquals(numberOfTimes, lines.size());
 
@@ -83,9 +87,7 @@ public class RandomGraphComponentRecorderTest {
       results.add(randomGraphComponentRecorder.chooseRandomNodeId());
     }
 
-    String fileName = directory + "nodeIds.txt";
-    List<String> lines = Files.readAllLines(Paths.get(fileName), Charset.forName(new FileReader(fileName)
-        .getEncoding()));
+    List<String> lines = getLines(new File(directory, "nodeIds.txt"));
 
     assertEquals(numberOfTimes, lines.size());
 
@@ -105,9 +107,7 @@ public class RandomGraphComponentRecorderTest {
       results.add(randomGraphComponentRecorder.randomNodeOrEdge());
     }
 
-    String fileName = directory + "componentIds.txt";
-    List<String> lines = Files.readAllLines(Paths.get(fileName), Charset.forName(new FileReader(fileName)
-        .getEncoding()));
+    List<String> lines = getLines(new File(directory, "componentIds.txt"));
 
     assertEquals(numberOfTimes, lines.size());
 
@@ -120,7 +120,7 @@ public class RandomGraphComponentRecorderTest {
   }
 
   @Test(timeout = 1000)
-  public void testChoose() {
+  public void testNextValue() {
     boolean hadNode = false;
     boolean hadEdge = false;
 
@@ -135,6 +135,18 @@ public class RandomGraphComponentRecorderTest {
         hadNode = true;
       }
     }
+  }
+
+  @Test
+  public void testLastValue() {
+    GraphComponent graphComponent = randomGraphComponentRecorder.nextValue();
+
+    assertEquals(graphComponent, randomGraphComponentRecorder.lastValue());
+  }
+
+  private List<String> getLines(File file) throws IOException {
+    return Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file)
+        .getEncoding()));
   }
 
 }

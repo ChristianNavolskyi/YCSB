@@ -26,10 +26,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class takes a data set of graph data and reproduces it.
@@ -79,13 +76,9 @@ public class GraphDataRecreator extends GraphDataGenerator {
     List<JsonReader> result = new ArrayList<>();
     List<String> components = getLinesOfStringsFromFile(file);
 
-    for (int i = 0; i < components.size(); i++) {
-      String component = components.get(i);
-      String keyString = getKeyString(String.valueOf(i));
-
-      if (component.startsWith(keyString)) {
-        result.add(new JsonReader(new StringReader(component.substring(keyString.length()))));
-      }
+    for (String component : components) {
+      // fromIndex is the dash after Key in Key-xxx-{...
+      result.add(new JsonReader(new StringReader(component.substring(component.indexOf('-', 4) + 1))));
     }
 
     return result;
@@ -150,8 +143,8 @@ public class GraphDataRecreator extends GraphDataGenerator {
     Node endNode;
     Graph graph;
 
-    for (long i = 0; i < edgeMap.size(); i++) {
-      Edge edge = edgeMap.get(i);
+    for (Long id : new TreeMap<>(edgeMap).keySet()) {
+      Edge edge = edgeMap.get(id);
       graph = new Graph();
 
       startNode = edge.getStartNode();
@@ -170,10 +163,9 @@ public class GraphDataRecreator extends GraphDataGenerator {
         graph.addEdge(edge);
         lastNodeId = endNode.getId();
 
-        if (edgeMap.size() > i + 1 && edgeMap.get(i + 1).getEndNode().getId() <= lastNodeId) {
-          Edge nextEdge = edgeMap.get(i + 1);
+        if (edgeMap.containsKey(id + 1) && edgeMap.get(id + 1).getEndNode().getId() <= lastNodeId) {
+          Edge nextEdge = edgeMap.get(id + 1);
           graph.addEdge(nextEdge);
-          i++;
         }
 
         result.add(graph);
