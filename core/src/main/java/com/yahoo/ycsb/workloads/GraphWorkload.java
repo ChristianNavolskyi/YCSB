@@ -95,10 +95,12 @@ public class GraphWorkload extends Workload {
       //TODO ditch modes and create a Generator.create(outputDirectory(, isRunPhase)) method the get the right one
       // also print the status of each. also test these new constructors.
       graphDataGenerator = GraphDataGenerator.create(outputDirectory, isRunPhase, properties);
-      randomGraphComponentGenerator = RandomGraphComponentGenerator.create(outputDirectory, graphDataGenerator);
-      orderGenerator = OperationOrderGenerator.create(outputDirectory, createOperationGenerator(properties));
+      randomGraphComponentGenerator = RandomGraphComponentGenerator.create(outputDirectory, isRunPhase,
+          graphDataGenerator);
+      orderGenerator = OperationOrderGenerator.create(outputDirectory, isRunPhase, createOperationGenerator
+          (properties));
     } catch (IOException e) {
-      e.printStackTrace();
+      throw new WorkloadException(e);
     }
   }
 
