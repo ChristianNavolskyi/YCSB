@@ -17,7 +17,6 @@
 
 package com.yahoo.ycsb.generator.graph.randomcomponents;
 
-import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.StoringGenerator;
 import com.yahoo.ycsb.generator.graph.Edge;
 import com.yahoo.ycsb.generator.graph.GraphComponent;
@@ -30,7 +29,7 @@ import java.io.IOException;
 /**
  * Abstract class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
  */
-public abstract class RandomGraphComponentGenerator extends Generator<GraphComponent> implements StoringGenerator {
+public abstract class RandomGraphComponentGenerator extends StoringGenerator<GraphComponent> {
 
   private static final int NODE = 0;
   private static final int EDGE = 1;
@@ -62,7 +61,11 @@ public abstract class RandomGraphComponentGenerator extends Generator<GraphCompo
 
   public static RandomGraphComponentGenerator create(String directory, boolean isRunPhase, GraphDataGenerator graphDataGenerator) throws IOException {
     if (isRunPhase) {
-      if (checkDataPresent(directory)) {
+      if (checkDataPresentAndCleanIfSomeMissing(className,
+          new File(directory, nodeFileName),
+          new File(directory, edgeFileName),
+          new File(directory, componentFileName)
+      )) {
         System.out.println(className + " creating RECREATOR.");
         return new RandomGraphComponentRecreator(directory, graphDataGenerator);
       } else {
@@ -72,48 +75,6 @@ public abstract class RandomGraphComponentGenerator extends Generator<GraphCompo
     } else {
       System.out.println(className + " not needed during load phase. Nothing created.");
       return null;
-    }
-  }
-
-  private static boolean checkDataPresent(String directory) {
-    File nodeFile = new File(directory, nodeFileName);
-    File edgeFile = new File(directory, edgeFileName);
-    File componentFile = new File(directory, componentFileName);
-
-    boolean nodeFileExists = nodeFile.exists();
-    boolean edgeFileExists = edgeFile.exists();
-    boolean componentFileExists = componentFile.exists();
-
-    boolean allFilesPresent = nodeFileExists
-        && edgeFileExists
-        && componentFileExists;
-
-    boolean allFilesAbsent = !nodeFileExists && !edgeFileExists && !componentFileExists;
-
-    boolean someFilesAbsent = !allFilesPresent && !allFilesAbsent;
-
-    if (someFilesAbsent) {
-      if (!nodeFileExists) {
-        System.out.println(className + " " + nodeFileName + " is missing.");
-      }
-      if (!edgeFileExists) {
-        System.out.println(className + " " + edgeFileName + " is missing.");
-      }
-      if (!componentFileExists) {
-        System.out.println(className + " " + componentFileName + " is missing.");
-      }
-
-      deleteAllFiles(nodeFile, edgeFile, componentFile);
-    }
-
-    return allFilesPresent;
-  }
-
-  private static void deleteAllFiles(File... files) {
-    for (File file : files) {
-      if (file.delete()) {
-        System.out.println(className + " deleted " + file.getName() + ".");
-      }
     }
   }
 

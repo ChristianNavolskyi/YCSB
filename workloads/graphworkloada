@@ -25,6 +25,7 @@
 recordcount=100
 operationcount=100
 workload=com.yahoo.ycsb.workloads.GraphWorkload
+testparametercount=1
 
 readallfields=true
 

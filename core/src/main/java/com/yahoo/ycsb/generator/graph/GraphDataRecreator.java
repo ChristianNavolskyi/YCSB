@@ -77,8 +77,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
     List<String> components = getLinesOfStringsFromFile(file);
 
     for (String component : components) {
-      // fromIndex is the dash after Key in Key-xxx-{...
-      result.add(new JsonReader(new StringReader(component.substring(component.indexOf('-', 4) + 1))));
+      result.add(new JsonReader(new StringReader(component)));
     }
 
     return result;

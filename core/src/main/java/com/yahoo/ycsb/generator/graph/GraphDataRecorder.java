@@ -106,11 +106,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   private void saveGraphContentsAndFillValueOfNodes(Graph graph) throws IOException {
     for (Node node : graph.getNodes()) {
-      insert(getNodeFile(), String.valueOf(node.getId()), node.getHashMap());
+      insert(getNodeFile(), node.getHashMap());
     }
 
     for (Edge edge : graph.getEdges()) {
-      insert(getEdgeFile(), String.valueOf(edge.getId()), edge.getHashMap());
+      insert(getEdgeFile(), edge.getHashMap());
     }
   }
 
@@ -175,11 +175,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     return testCounter == testParameterCount && !shouldCreateProduct && !shouldCreateDate && !shouldCreateTests;
   }
 
-  private void insert(File file, String key, Map<String, ByteIterator> values) throws IOException {
+  private void insert(File file, Map<String, ByteIterator> values) throws IOException {
     String output = gson.toJson(values, valueType);
     FileWriter fileWriter = getFileWriter(file);
 
-    writeToFile(key, output, fileWriter);
+    writeToFile(output, fileWriter);
   }
 
   private FileWriter getFileWriter(File file) throws IOException {
@@ -192,8 +192,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     return fileWriterMap.get(file.getName());
   }
 
-  private void writeToFile(String key, String output, FileWriter fileWriter) throws IOException {
-    fileWriter.write(getKeyString(key));
+  private void writeToFile(String output, FileWriter fileWriter) throws IOException {
     fileWriter.write(output);
     fileWriter.write("\n");
     fileWriter.flush();

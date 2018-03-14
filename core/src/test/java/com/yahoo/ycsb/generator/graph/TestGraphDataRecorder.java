@@ -14,7 +14,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
 
-import static com.yahoo.ycsb.generator.graph.GraphDataGenerator.getKeyString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -284,11 +283,9 @@ public class TestGraphDataRecorder {
 
   private void setIdsToLoadFiles(File nodeFile, File edgeFile, int nodeId, int edgeId) throws IOException {
     FileWriter fileWriter = new FileWriter(nodeFile);
-    fileWriter.write(getKeyString(String.valueOf(nodeId)));
     fileWriter.close();
 
     fileWriter = new FileWriter(edgeFile);
-    fileWriter.write(getKeyString(String.valueOf(edgeId)));
     fileWriter.close();
   }
 }

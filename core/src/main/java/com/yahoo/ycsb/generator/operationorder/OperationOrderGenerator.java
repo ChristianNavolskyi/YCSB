@@ -18,7 +18,6 @@
 package com.yahoo.ycsb.generator.operationorder;
 
 import com.yahoo.ycsb.generator.DiscreteGenerator;
-import com.yahoo.ycsb.generator.Generator;
 import com.yahoo.ycsb.generator.StoringGenerator;
 
 import java.io.File;
@@ -28,9 +27,10 @@ import java.io.IOException;
  * This class generates {@link String}s which represent operations for a {@link com.yahoo.ycsb.DB}.
  * The value of that String is saves in a operations.txt file for later reproduction.
  */
-public abstract class OperationOrderGenerator extends Generator<String> implements StoringGenerator {
+public abstract class OperationOrderGenerator extends StoringGenerator<String> {
 
   private static final String operationFileName = "operations.txt";
+  private static final String className = OperationOrderGenerator.class.getSimpleName();
   private final File operationFile;
 
   String lastOperation;
@@ -44,16 +44,19 @@ public abstract class OperationOrderGenerator extends Generator<String> implemen
     }
   }
 
-  public static OperationOrderGenerator create(String directory, DiscreteGenerator operationGenerator) throws IOException {
-    if (checkDataPresent(directory)) {
-      return new OperationOrderRecreator(directory);
+  public static OperationOrderGenerator create(String directory, boolean isRunPhase, DiscreteGenerator operationGenerator) throws IOException {
+    if (isRunPhase) {
+      if (checkDataPresentAndCleanIfSomeMissing(className, new File(directory, operationFileName))) {
+        System.out.println(className + " creating RECREATOR.");
+        return new OperationOrderRecreator(directory);
+      } else {
+        System.out.println(className + " creating RECORDER.");
+        return new OperationOrderRecorder(directory, operationGenerator);
+      }
     } else {
-      return new OperationOrderRecorder(directory, operationGenerator);
+      System.out.println(className + " not needed during load phase. Nothing created.");
+      return null;
     }
-  }
-
-  private static boolean checkDataPresent(String outputDirectory) {
-    return new File(outputDirectory + operationFileName).exists();
   }
 
   @Override
