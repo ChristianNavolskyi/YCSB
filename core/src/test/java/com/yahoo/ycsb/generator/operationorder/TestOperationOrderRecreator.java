@@ -40,7 +40,7 @@ public class TestOperationOrderRecreator {
 
   @Test
   public void readLines() throws IOException {
-    File file = new File(inputDirectory + "operations.txt");
+    File file = new File(inputDirectory, "operations.txt");
     List<String> operations = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
 
     for (String operation : operations) {

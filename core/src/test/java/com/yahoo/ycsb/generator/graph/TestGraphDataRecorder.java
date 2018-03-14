@@ -283,9 +283,30 @@ public class TestGraphDataRecorder {
 
   private void setIdsToLoadFiles(File nodeFile, File edgeFile, int nodeId, int edgeId) throws IOException {
     FileWriter fileWriter = new FileWriter(nodeFile);
+    fileWriter.write("{\"id\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"" + nodeId + "\",\"off\":0}},\"" +
+        "label\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"Factory\",\"off\":0}},\"" +
+        "value\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"\\u0026Ys+Ck0\\u0027j3.\\u0026)\\u0026.1Je;)7\",\"off\":0}}}");
     fileWriter.close();
 
     fileWriter = new FileWriter(edgeFile);
+    fileWriter.write("{\"start\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"1\",\"off\":0}},\"" +
+        "end\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"9\",\"off\":0}},\"" +
+        "id\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"" + edgeId + "\",\"off\":0}},\"" +
+        "label\":{\"" +
+        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
+        "properties\":{\"str\":\"produced\",\"off\":0}}}");
     fileWriter.close();
   }
 }

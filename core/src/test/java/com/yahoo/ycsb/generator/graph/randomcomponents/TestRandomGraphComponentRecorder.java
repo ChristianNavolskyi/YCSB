@@ -5,7 +5,8 @@ import com.yahoo.ycsb.generator.graph.GraphComponent;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
 import com.yahoo.ycsb.generator.graph.Node;
 import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -36,11 +37,15 @@ public class TestRandomGraphComponentRecorder {
     when(generator.getEdge(anyLong())).thenReturn(Edge.recreateEdge(1));
     when(generator.getNode(anyLong())).thenReturn(Node.recreateNode(1));
     FileUtils.deleteDirectory(directory);
+  }
+
+  @Before
+  public void setUpRecorder() throws IOException {
     randomGraphComponentRecorder = new RandomGraphComponentRecorder(directory, generator);
   }
 
-  @AfterClass
-  public static void deleteDirectory() throws IOException {
+  @After
+  public void clearDirectory() throws IOException {
     FileUtils.deleteDirectory(directory);
   }
 
