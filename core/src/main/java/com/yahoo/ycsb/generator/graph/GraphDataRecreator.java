@@ -43,7 +43,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
 
     Map<Long, Node> loadNodeMap = new HashMap<>();
     if (isRunPhase) {
-      loadNodeMap = parseNodes(new File(inputDirectory, loadNodeFileName));
+      loadNodeMap = parseNodes(new File(inputDirectory, LOAD_NODE_FILE_NAME));
       addNodesFromLoadPhaseIfPresent(nodes, loadNodeMap);
     }
 
@@ -59,12 +59,12 @@ public class GraphDataRecreator extends GraphDataGenerator {
   @Override
   Graph createNextValue() {
     if (hasValueAtNextPosition()) {
-      lastValue = graphs.get(++currentPosition);
+      setLastValue(graphs.get(++currentPosition));
     } else {
-      lastValue = new Graph();
+      setLastValue(new Graph());
     }
 
-    return lastValue;
+    return getLastValue();
   }
 
   @Override
@@ -134,13 +134,13 @@ public class GraphDataRecreator extends GraphDataGenerator {
   }
 
   private Node getNodeFromJson(JsonReader jsonReader) {
-    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
+    Map<String, ByteIterator> values = getGson().fromJson(jsonReader, getValueType());
 
     return Node.recreateNode(values);
   }
 
   private Edge getEdgeFromJson(JsonReader jsonReader, Map<Long, Node> nodeMap) {
-    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
+    Map<String, ByteIterator> values = getGson().fromJson(jsonReader, getValueType());
 
     return Edge.recreateEdge(values, nodeMap);
   }

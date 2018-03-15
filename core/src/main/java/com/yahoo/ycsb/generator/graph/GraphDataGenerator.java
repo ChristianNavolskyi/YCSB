@@ -36,21 +36,21 @@ import java.util.Properties;
  */
 public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
-  static final String loadEdgeFileName = Edge.EDGE_IDENTIFIER + "load.json";
-  static final String loadNodeFileName = Node.NODE_IDENTIFIER + "load.json";
+  static final String LOAD_EDGE_FILE_NAME = Edge.EDGE_IDENTIFIER + "load.json";
+  static final String LOAD_NODE_FILE_NAME = Node.NODE_IDENTIFIER + "load.json";
 
-  private static final String runEdgeFileName = Edge.EDGE_IDENTIFIER + "run.json";
-  private static final String runNodeFileName = Node.NODE_IDENTIFIER + "run.json";
-  private static final String className = GraphDataGenerator.class.getSimpleName();
+  private static final String RUN_EDGE_FILE_NAME = Edge.EDGE_IDENTIFIER + "run.json";
+  private static final String RUN_NODE_FILE_NAME = Node.NODE_IDENTIFIER + "run.json";
+  private static final String CLASS_NAME = GraphDataGenerator.class.getSimpleName();
 
   private final Map<Long, Edge> edgeMap = new HashMap<>();
   private final Map<Long, Node> nodeMap = new HashMap<>();
   private final File edgeFile;
   private final File nodeFile;
 
-  Gson gson;
-  Type valueType;
-  Graph lastValue = new Graph();
+  private Gson gson;
+  private Type valueType;
+  private Graph lastValue = new Graph();
 
   /**
    * @param directory  in which the files for nodes and edges should be stored/restored from.
@@ -67,11 +67,11 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     File directoryFile = new File(directory);
 
     if (isRunPhase) {
-      nodeFile = new File(directory, runNodeFileName);
-      edgeFile = new File(directory, runEdgeFileName);
+      nodeFile = new File(directory, RUN_NODE_FILE_NAME);
+      edgeFile = new File(directory, RUN_EDGE_FILE_NAME);
     } else {
-      nodeFile = new File(directory, loadNodeFileName);
-      edgeFile = new File(directory, loadEdgeFileName);
+      nodeFile = new File(directory, LOAD_NODE_FILE_NAME);
+      edgeFile = new File(directory, LOAD_EDGE_FILE_NAME);
     }
 
     if (!checkFiles(directoryFile, nodeFile, edgeFile)) {
@@ -79,13 +79,15 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     }
   }
 
-  public static GraphDataGenerator create(String directory, boolean isRunPhase, Properties properties) throws IOException {
-    boolean loadDataPresent = checkDataPresentAndCleanIfSomeMissing(className,
-        new File(directory, loadNodeFileName),
-        new File(directory, loadEdgeFileName));
-    boolean runDataPresent = checkDataPresentAndCleanIfSomeMissing(className,
-        new File(directory, runNodeFileName),
-        new File(directory, runEdgeFileName));
+  public static GraphDataGenerator create(String directory,
+                                          boolean isRunPhase,
+                                          Properties properties) throws IOException {
+    boolean loadDataPresent = checkDataPresentAndCleanIfSomeMissing(CLASS_NAME,
+        new File(directory, LOAD_NODE_FILE_NAME),
+        new File(directory, LOAD_EDGE_FILE_NAME));
+    boolean runDataPresent = checkDataPresentAndCleanIfSomeMissing(CLASS_NAME,
+        new File(directory, RUN_NODE_FILE_NAME),
+        new File(directory, RUN_EDGE_FILE_NAME));
 
 //  load runData isRun return
 //  0    0       0     recorder
@@ -97,10 +99,10 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 //  1    1       0     recreator
 //  1    1       1     recreator
     if (isRunPhase && runDataPresent || !isRunPhase && loadDataPresent) {
-      System.out.println(className + " creating RECREATOR.");
+      System.out.println(CLASS_NAME + " creating RECREATOR.");
       return new GraphDataRecreator(directory, isRunPhase);
     } else {
-      System.out.println(className + " creating RECORDER.");
+      System.out.println(CLASS_NAME + " creating RECORDER.");
       return new GraphDataRecorder(directory, isRunPhase, properties);
     }
   }
@@ -130,6 +132,22 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
   public Edge getEdge(long key) {
     return edgeMap.get(key);
+  }
+
+  Gson getGson() {
+    return gson;
+  }
+
+  Type getValueType() {
+    return valueType;
+  }
+
+  Graph getLastValue() {
+    return lastValue;
+  }
+
+  void setLastValue(Graph graph) {
+    this.lastValue = graph;
   }
 
   File getEdgeFile() {

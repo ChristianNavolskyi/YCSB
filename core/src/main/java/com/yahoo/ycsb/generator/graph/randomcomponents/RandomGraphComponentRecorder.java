@@ -18,7 +18,6 @@
 package com.yahoo.ycsb.generator.graph.randomcomponents;
 
 import com.yahoo.ycsb.generator.graph.Edge;
-import com.yahoo.ycsb.generator.graph.GraphComponent;
 import com.yahoo.ycsb.generator.graph.GraphDataGenerator;
 import com.yahoo.ycsb.generator.graph.Node;
 
@@ -28,7 +27,7 @@ import java.io.IOException;
 import java.util.Random;
 
 /**
- * Class to pick a random {@link GraphComponent} ({@link Node} or {@link Edge}).
+ * Class to pick a random GraphComponent ({@link Node} or {@link Edge}).
  */
 public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator {
 

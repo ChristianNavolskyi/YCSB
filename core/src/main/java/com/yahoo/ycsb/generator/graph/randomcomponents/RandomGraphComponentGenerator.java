@@ -33,10 +33,10 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
 
   private static final int NODE = 0;
   private static final int EDGE = 1;
-  private static final String nodeFileName = "nodeIds.txt";
-  private static final String edgeFileName = "edgeIds.txt";
-  private static final String componentFileName = "componentIds.txt";
-  private static final String className = RandomGraphComponentGenerator.class.getSimpleName();
+  private static final String NODE_FILE_NAME = "nodeIds.txt";
+  private static final String EDGE_FILE_NAME = "edgeIds.txt";
+  private static final String COMPONENT_FILE_NAME = "componentIds.txt";
+  private static final String CLASS_NAME = RandomGraphComponentGenerator.class.getSimpleName();
 
   private final File nodeFile;
   private final File edgeFile;
@@ -49,31 +49,33 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
 
     File directoryFile = new File(directory);
 
-    nodeFile = new File(directory, nodeFileName);
-    edgeFile = new File(directory, edgeFileName);
+    nodeFile = new File(directory, NODE_FILE_NAME);
+    edgeFile = new File(directory, EDGE_FILE_NAME);
 
-    componentFile = new File(directory, componentFileName);
+    componentFile = new File(directory, COMPONENT_FILE_NAME);
 
     if (!checkFiles(directoryFile, nodeFile, edgeFile, componentFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static RandomGraphComponentGenerator create(String directory, boolean isRunPhase, GraphDataGenerator graphDataGenerator) throws IOException {
+  public static RandomGraphComponentGenerator create(String directory,
+                                                     boolean isRunPhase,
+                                                     GraphDataGenerator graphDataGenerator) throws IOException {
     if (isRunPhase) {
-      if (checkDataPresentAndCleanIfSomeMissing(className,
-          new File(directory, nodeFileName),
-          new File(directory, edgeFileName),
-          new File(directory, componentFileName)
+      if (checkDataPresentAndCleanIfSomeMissing(CLASS_NAME,
+          new File(directory, NODE_FILE_NAME),
+          new File(directory, EDGE_FILE_NAME),
+          new File(directory, COMPONENT_FILE_NAME)
       )) {
-        System.out.println(className + " creating RECREATOR.");
+        System.out.println(CLASS_NAME + " creating RECREATOR.");
         return new RandomGraphComponentRecreator(directory, graphDataGenerator);
       } else {
-        System.out.println(className + " creating RECORDER.");
+        System.out.println(CLASS_NAME + " creating RECORDER.");
         return new RandomGraphComponentRecorder(directory, graphDataGenerator);
       }
     } else {
-      System.out.println(className + " not needed during load phase. Nothing created.");
+      System.out.println(CLASS_NAME + " not needed during load phase. Nothing created.");
       return null;
     }
   }

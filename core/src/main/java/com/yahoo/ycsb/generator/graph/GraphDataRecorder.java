@@ -72,8 +72,8 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     fileWriterMap = new HashMap<>();
 
     if (isRunPhase) {
-      File loadNodeFile = new File(outputDirectory, loadNodeFileName);
-      File loadEdgeFile = new File(outputDirectory, loadEdgeFileName);
+      File loadNodeFile = new File(outputDirectory, LOAD_NODE_FILE_NAME);
+      File loadEdgeFile = new File(outputDirectory, LOAD_EDGE_FILE_NAME);
 
       if (checkDataPresentAndCleanIfSomeMissing(GraphDataRecorder.class.getSimpleName(), loadNodeFile, loadEdgeFile)) {
         int lastNodeId = getLastId(loadNodeFile);
@@ -89,7 +89,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
     String lastEntry = lines.get(lines.size() - 1);
 
-    Map<String, ByteIterator> values = gson.fromJson(new JsonReader(new StringReader(lastEntry)), valueType);
+    Map<String, ByteIterator> values = getGson().fromJson(new JsonReader(new StringReader(lastEntry)), getValueType());
 
     return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
   }
@@ -101,11 +101,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   @Override
   Graph createNextValue() throws IOException {
-    lastValue = createGraph();
+    setLastValue(createGraph());
 
-    saveGraphContentsAndFillValueOfNodes(lastValue);
+    saveGraphContentsAndFillValueOfNodes(getLastValue());
 
-    return lastValue;
+    return getLastValue();
   }
 
   @Override
@@ -199,7 +199,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   private void insert(File file, Map<String, ByteIterator> values) throws IOException {
-    String output = gson.toJson(values, valueType);
+    String output = getGson().toJson(values, getValueType());
     FileWriter fileWriter = getFileWriter(file);
 
     writeToFile(output, fileWriter);

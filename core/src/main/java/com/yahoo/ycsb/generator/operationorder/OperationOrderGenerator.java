@@ -29,32 +29,33 @@ import java.io.IOException;
  */
 public abstract class OperationOrderGenerator extends StoringGenerator<String> {
 
-  private static final String operationFileName = "operations.txt";
-  private static final String className = OperationOrderGenerator.class.getSimpleName();
+  private static final String OPERATION_FILE_NAME = "operations.txt";
+  private static final String CLASS_NAME = OperationOrderGenerator.class.getSimpleName();
   private final File operationFile;
-
-  String lastOperation;
+  private String lastOperation;
 
   OperationOrderGenerator(String outputDirectory) throws IOException {
     File directory = new File(outputDirectory);
-    operationFile = new File(outputDirectory, operationFileName);
+    operationFile = new File(outputDirectory, OPERATION_FILE_NAME);
 
     if (!checkFiles(directory, operationFile)) {
       throw new IOException(getExceptionMessage());
     }
   }
 
-  public static OperationOrderGenerator create(String directory, boolean isRunPhase, DiscreteGenerator operationGenerator) throws IOException {
+  public static OperationOrderGenerator create(String directory,
+                                               boolean isRunPhase,
+                                               DiscreteGenerator operationGenerator) throws IOException {
     if (isRunPhase) {
-      if (checkDataPresentAndCleanIfSomeMissing(className, new File(directory, operationFileName))) {
-        System.out.println(className + " creating RECREATOR.");
+      if (checkDataPresentAndCleanIfSomeMissing(CLASS_NAME, new File(directory, OPERATION_FILE_NAME))) {
+        System.out.println(CLASS_NAME + " creating RECREATOR.");
         return new OperationOrderRecreator(directory);
       } else {
-        System.out.println(className + " creating RECORDER.");
+        System.out.println(CLASS_NAME + " creating RECORDER.");
         return new OperationOrderRecorder(directory, operationGenerator);
       }
     } else {
-      System.out.println(className + " not needed during load phase. Nothing created.");
+      System.out.println(CLASS_NAME + " not needed during load phase. Nothing created.");
       return null;
     }
   }
@@ -62,6 +63,15 @@ public abstract class OperationOrderGenerator extends StoringGenerator<String> {
   @Override
   public final String lastValue() {
     return lastOperation;
+  }
+
+  String getLastOperation() {
+
+    return lastOperation;
+  }
+
+  void setLastOperation(String operation) {
+    this.lastOperation = operation;
   }
 
   final File getOperationFile() {

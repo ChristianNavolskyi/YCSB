@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2018 YCSB contributors. All rights reserved.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -45,11 +45,9 @@ import static java.io.File.separatorChar;
  */
 public class GraphWorkload extends Workload {
 
-  public static final String DATA_SET_DIRECTORY_PROPERTY = "dataSetDirectory";
-  private static final String DATA_SET_DIRECTORY_DEFAULT = System.getProperty("user.dir")
-      + separatorChar
-      + "benchmarkingData"
-      + separatorChar;
+  public static final String DATA_SET_DIRECTORY_PROPERTY = "datasetdirectory";
+  private static final String DATA_SET_DIRECTORY_DEFAULT = new File(System.getProperty("user.dir"),
+      "benchmarkingData").getAbsolutePath();
 
   private static final String NODE_BYTE_SIZE_PROPERTY = "nodeByteSize";
   private static final String NODE_BYTE_SIZE_DEFAULT = "500";
@@ -95,8 +93,9 @@ public class GraphWorkload extends Workload {
       graphDataGenerator = GraphDataGenerator.create(outputDirectory, isRunPhase, properties);
       randomGraphComponentGenerator = RandomGraphComponentGenerator.create(outputDirectory, isRunPhase,
           graphDataGenerator);
-      orderGenerator = OperationOrderGenerator.create(outputDirectory, isRunPhase, createOperationGenerator
-          (properties));
+      orderGenerator = OperationOrderGenerator.create(outputDirectory,
+          isRunPhase,
+          createOperationGenerator(properties));
     } catch (IOException e) {
       throw new WorkloadException(e);
     }
