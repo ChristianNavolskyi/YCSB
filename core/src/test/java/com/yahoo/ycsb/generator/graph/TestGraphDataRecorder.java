@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.generator.graph;
 
 import org.apache.commons.io.FileUtils;
@@ -5,6 +22,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.io.File;
 import java.io.FileReader;
@@ -17,22 +37,34 @@ import java.util.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class TestGraphDataRecorder {
 
   private static Properties properties = new Properties();
   private static String directoryName = System.getProperty("user.dir") + File.separator + "test";
   private static File directory = new File(directoryName);
   private final int graphsToCreate = 100;
+  private int testParameterCountValue;
+
+  public TestGraphDataRecorder(int value) {
+    this.testParameterCountValue = value;
+  }
+
+  @Parameters
+  public static Collection<Object> data() {
+    Object[] data = {0, 1, 128};
+    return Arrays.asList(data);
+  }
 
   @BeforeClass
   public static void initPropertiesAndClearDirectory() throws IOException {
     FileUtils.deleteDirectory(directory);
-    properties.setProperty("testparametercount", "1");
   }
 
   @Before
   public void setUp() {
     directory.mkdirs();
+    properties.setProperty("testparametercount", String.valueOf(this.testParameterCountValue));
   }
 
   @After
@@ -43,7 +75,7 @@ public class TestGraphDataRecorder {
   }
 
   @Test
-  public void creatingFilesTestInLoadPhase() throws IOException {
+  public void testCreatingFilesInLoadPhase() throws IOException {
     GraphDataRecorder graphDataRecorder = getGraphDataRecorderInLoadPhase();
 
     Set<File> list = new HashSet<>(Arrays.asList(Objects.requireNonNull(directory.listFiles())));
@@ -75,9 +107,8 @@ public class TestGraphDataRecorder {
     edgeFile.createNewFile();
 
     int nodeId = 10;
-    int edgeId = 12;
 
-    setIdsToLoadFiles(nodeFile, edgeFile, nodeId, edgeId);
+    setIdsToNodeLoadFile(nodeFile, nodeId);
 
     GraphDataRecorder graphDataRecorder = getGraphDataRecorderInRunPhase();
 
@@ -87,7 +118,6 @@ public class TestGraphDataRecorder {
     assertTrue(list.contains(graphDataRecorder.getNodeFile()));
     assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
     assertEquals(++nodeId, Node.getNodeIdCount());
-    assertEquals(++edgeId, Edge.getEdgeIdCount());
   }
 
   @Test(expected = IOException.class)
@@ -146,14 +176,7 @@ public class TestGraphDataRecorder {
       graphList.add(graphDataRecorder.nextValue());
     }
 
-    for (Graph graph : graphList) {
-      for (Node node : graph.getNodes()) {
-        assertEquals(node, graphDataRecorder.getNode(node.getId()));
-      }
-      for (Edge edge : graph.getEdges()) {
-        assertEquals(edge, graphDataRecorder.getEdge(edge.getId()));
-      }
-    }
+    checkCreatedGraphsWithGetter(graphDataRecorder, graphList);
   }
 
   @Test
@@ -166,14 +189,7 @@ public class TestGraphDataRecorder {
       graphList.add(graphDataRecorder.nextValue());
     }
 
-    for (Graph graph : graphList) {
-      for (Node node : graph.getNodes()) {
-        assertEquals(node, graphDataRecorder.getNode(node.getId()));
-      }
-      for (Edge edge : graph.getEdges()) {
-        assertEquals(edge, graphDataRecorder.getEdge(edge.getId()));
-      }
-    }
+    checkCreatedGraphsWithGetter(graphDataRecorder, graphList);
 
     assertEquals(0, graphList.get(0).getNodes().get(0).getId());
     assertEquals(0, graphList.get(1).getEdges().get(0).getId());
@@ -182,7 +198,6 @@ public class TestGraphDataRecorder {
   @Test
   public void checkIfGraphComponentsCanBeRetrievedByGetInRunPhaseWithLoadFiles() throws IOException {
     int nodeId = 5;
-    int edgeId = 16;
 
     File nodeFile = createComponentLoadFileFileInDirectory(Node.NODE_IDENTIFIER);
     File edgeFile = createComponentLoadFileFileInDirectory(Edge.EDGE_IDENTIFIER);
@@ -190,7 +205,7 @@ public class TestGraphDataRecorder {
     nodeFile.createNewFile();
     edgeFile.createNewFile();
 
-    setIdsToLoadFiles(nodeFile, edgeFile, nodeId, edgeId);
+    setIdsToNodeLoadFile(nodeFile, nodeId);
 
     GraphDataRecorder graphDataRecorder = getGraphDataRecorderInRunPhase();
 
@@ -200,17 +215,9 @@ public class TestGraphDataRecorder {
       graphList.add(graphDataRecorder.nextValue());
     }
 
-    for (Graph graph : graphList) {
-      for (Node node : graph.getNodes()) {
-        assertEquals(node, graphDataRecorder.getNode(node.getId()));
-      }
-      for (Edge edge : graph.getEdges()) {
-        assertEquals(edge, graphDataRecorder.getEdge(edge.getId()));
-      }
-    }
+    checkCreatedGraphsWithGetter(graphDataRecorder, graphList);
 
     assertEquals(++nodeId, graphList.get(0).getNodes().get(0).getId());
-    assertEquals(++edgeId, graphList.get(1).getEdges().get(0).getId());
   }
 
   @Test
@@ -281,7 +288,7 @@ public class TestGraphDataRecorder {
     return new File(directory, componentIdentifier + "run.json");
   }
 
-  private void setIdsToLoadFiles(File nodeFile, File edgeFile, int nodeId, int edgeId) throws IOException {
+  private void setIdsToNodeLoadFile(File nodeFile, int nodeId) throws IOException {
     FileWriter fileWriter = new FileWriter(nodeFile);
     fileWriter.write("{\"id\":{\"" +
         "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
@@ -293,20 +300,16 @@ public class TestGraphDataRecorder {
         "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
         "properties\":{\"str\":\"\\u0026Ys+Ck0\\u0027j3.\\u0026)\\u0026.1Je;)7\",\"off\":0}}}");
     fileWriter.close();
+  }
 
-    fileWriter = new FileWriter(edgeFile);
-    fileWriter.write("{\"start\":{\"" +
-        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"1\",\"off\":0}},\"" +
-        "end\":{\"" +
-        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"9\",\"off\":0}},\"" +
-        "id\":{\"" +
-        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"" + edgeId + "\",\"off\":0}},\"" +
-        "label\":{\"" +
-        "type\":\"com.yahoo.ycsb.StringByteIterator\",\"" +
-        "properties\":{\"str\":\"produced\",\"off\":0}}}");
-    fileWriter.close();
+  private void checkCreatedGraphsWithGetter(GraphDataRecorder graphDataRecorder, List<Graph> graphList) {
+    for (Graph graph : graphList) {
+      for (Node node : graph.getNodes()) {
+        assertEquals(node, graphDataRecorder.getNode(node.getId()));
+      }
+      for (Edge edge : graph.getEdges()) {
+        assertEquals(edge, graphDataRecorder.getEdge(edge.getId()));
+      }
+    }
   }
 }
