@@ -92,8 +92,6 @@ public class GraphWorkload extends Workload {
     boolean isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
 
     try {
-      //TODO ditch modes and create a Generator.create(outputDirectory(, isRunPhase)) method the get the right one
-      // also print the status of each. also test these new constructors.
       graphDataGenerator = GraphDataGenerator.create(outputDirectory, isRunPhase, properties);
       randomGraphComponentGenerator = RandomGraphComponentGenerator.create(outputDirectory, isRunPhase,
           graphDataGenerator);
@@ -113,7 +111,6 @@ public class GraphWorkload extends Workload {
 
   @Override
   public boolean doTransaction(DB db, Object threadState) {
-    //TODO wrong mode is selected by first run.
     String nextOperation = orderGenerator.nextValue();
 
     return executeOperation(nextOperation, db, graphDataGenerator);
@@ -162,6 +159,7 @@ public class GraphWorkload extends Workload {
       System.out.println("ReadingModifyingWriting");
       doTransactionReadModifyWrite(db);
     default:
+      System.err.println("Unsupported operation was chosen.");
       return false;
     }
 

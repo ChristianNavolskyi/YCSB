@@ -20,20 +20,14 @@ package com.yahoo.ycsb.generator.graph;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.StoringGenerator;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -42,8 +36,9 @@ import java.util.Properties;
  */
 public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
-  private static final String loadEdgeFileName = Edge.EDGE_IDENTIFIER + "load.json";
-  private static final String loadNodeFileName = Node.NODE_IDENTIFIER + "load.json";
+  static final String loadEdgeFileName = Edge.EDGE_IDENTIFIER + "load.json";
+  static final String loadNodeFileName = Node.NODE_IDENTIFIER + "load.json";
+
   private static final String runEdgeFileName = Edge.EDGE_IDENTIFIER + "run.json";
   private static final String runNodeFileName = Node.NODE_IDENTIFIER + "run.json";
   private static final String className = GraphDataGenerator.class.getSimpleName();
@@ -56,8 +51,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
   Gson gson;
   Type valueType;
   Graph lastValue = new Graph();
-
-  //TODO more tests for new boolean
 
   /**
    * @param directory  in which the files for nodes and edges should be stored/restored from.
@@ -76,15 +69,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     if (isRunPhase) {
       nodeFile = new File(directory, runNodeFileName);
       edgeFile = new File(directory, runEdgeFileName);
-
-      File loadNodeFile = new File(directory, loadNodeFileName);
-      File loadEdgeFile = new File(directory, loadEdgeFileName);
-
-      if (checkDataPresentAndCleanIfSomeMissing(className, loadNodeFile, loadEdgeFile)) {
-        Node.presetId(getLastId(loadNodeFile));
-        Edge.presetId(getLastId(loadEdgeFile));
-      }
-
     } else {
       nodeFile = new File(directory, loadNodeFileName);
       edgeFile = new File(directory, loadEdgeFileName);
@@ -154,15 +138,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
   File getNodeFile() {
     return nodeFile;
-  }
-
-  private int getLastId(File file) throws IOException {
-    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
-    String lastEntry = lines.get(lines.size() - 1);
-
-    Map<String, ByteIterator> values = gson.fromJson(new JsonReader(new StringReader(lastEntry)), valueType);
-
-    return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
   }
 
   private void storeGraphComponents(Graph graph) {

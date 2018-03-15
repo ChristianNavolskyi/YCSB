@@ -40,8 +40,15 @@ public class GraphDataRecreator extends GraphDataGenerator {
     super(inputDirectory, isRunPhase);
 
     Map<Long, Node> nodes = parseNodes(getNodeFile());
+
+    Map<Long, Node> loadNodeMap = new HashMap<>();
+    if (isRunPhase) {
+      loadNodeMap = parseNodes(new File(inputDirectory, loadNodeFileName));
+      addNodesFromLoadPhaseIfPresent(nodes, loadNodeMap);
+    }
+
     Map<Long, Edge> edges = parseEdges(getEdgeFile(), nodes);
-    graphs = createSingleGraphs(edges);
+    graphs = createSingleGraphs(edges, loadNodeMap);
   }
 
   @Override
@@ -84,8 +91,12 @@ public class GraphDataRecreator extends GraphDataGenerator {
   }
 
   private List<String> getLinesOfStringsFromFile(File file) throws IOException {
-    FileReader fileReader = new FileReader(file);
-    return Files.readAllLines(file.toPath(), Charset.forName(fileReader.getEncoding()));
+    if (file.exists()) {
+      FileReader fileReader = new FileReader(file);
+      return Files.readAllLines(file.toPath(), Charset.forName(fileReader.getEncoding()));
+    } else {
+      return new ArrayList<>();
+    }
   }
 
   private Map<Long, Node> parseNodes(File nodeFile) {
@@ -105,12 +116,6 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return result;
   }
 
-  private Node getNodeFromJson(JsonReader jsonReader) {
-    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
-
-    return Node.recreateNode(values);
-  }
-
   private Map<Long, Edge> parseEdges(File edgeFile, Map<Long, Node> nodeMap) {
     Map<Long, Edge> result = new HashMap<>();
 
@@ -128,14 +133,20 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return result;
   }
 
+  private Node getNodeFromJson(JsonReader jsonReader) {
+    Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
+
+    return Node.recreateNode(values);
+  }
+
   private Edge getEdgeFromJson(JsonReader jsonReader, Map<Long, Node> nodeMap) {
     Map<String, ByteIterator> values = gson.fromJson(jsonReader, valueType);
 
     return Edge.recreateEdge(values, nodeMap);
   }
 
-  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap) {
-    long lastNodeId = -1;
+  private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap, Map<Long, Node> loadNodeMap) {
+    long lastNodeId = getLastLoadId(loadNodeMap);
     List<Graph> result = new ArrayList<>();
 
     Node startNode;
@@ -174,7 +185,33 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return result;
   }
 
+  private Long getLastLoadId(Map<Long, Node> loadNodeMap) {
+    Set<Long> loadNodeIds = new TreeMap<>(loadNodeMap).keySet();
+
+    Long[] loadIds = loadNodeIds.toArray(new Long[0]);
+
+    if (loadIds.length > 0) {
+      return loadIds[loadIds.length - 1];
+    } else {
+      return -1L;
+    }
+  }
+
   private boolean hasValueAtNextPosition() {
     return graphs != null && graphs.size() > currentPosition + 1;
+  }
+
+  private void addNodesFromLoadPhaseIfPresent(Map<Long, Node> nodes, Map<Long, Node> loadNodes) {
+    if (!loadNodes.isEmpty()) {
+      addNodesIfNotPresent(nodes, loadNodes);
+    }
+  }
+
+  private void addNodesIfNotPresent(Map<Long, Node> nodes, Map<Long, Node> loadNodes) {
+    for (Long id : loadNodes.keySet()) {
+      if (!nodes.containsKey(id)) {
+        nodes.put(id, loadNodes.get(id));
+      }
+    }
   }
 }

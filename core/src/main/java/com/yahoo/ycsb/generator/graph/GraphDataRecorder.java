@@ -17,13 +17,14 @@
 
 package com.yahoo.ycsb.generator.graph;
 
+import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -69,6 +70,28 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
         String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
 
     fileWriterMap = new HashMap<>();
+
+    if (isRunPhase) {
+      File loadNodeFile = new File(outputDirectory, loadNodeFileName);
+      File loadEdgeFile = new File(outputDirectory, loadEdgeFileName);
+
+      if (checkDataPresentAndCleanIfSomeMissing(GraphDataRecorder.class.getSimpleName(), loadNodeFile, loadEdgeFile)) {
+        int lastNodeId = getLastId(loadNodeFile);
+
+        for (int i = 0; i <= lastNodeId; i++) {
+          createGraph();
+        }
+      }
+    }
+  }
+
+  private int getLastId(File file) throws IOException {
+    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
+    String lastEntry = lines.get(lines.size() - 1);
+
+    Map<String, ByteIterator> values = gson.fromJson(new JsonReader(new StringReader(lastEntry)), valueType);
+
+    return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
   }
 
   @Override
@@ -78,7 +101,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   @Override
   Graph createNextValue() throws IOException {
-    lastValue = createGraphNode();
+    lastValue = createGraph();
 
     saveGraphContentsAndFillValueOfNodes(lastValue);
 
@@ -114,7 +137,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     }
   }
 
-  private Graph createGraphNode() {
+  private Graph createGraph() {
     Graph graph = new Graph();
 
     if (factory == null) {
