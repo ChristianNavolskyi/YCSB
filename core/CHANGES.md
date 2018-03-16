@@ -65,6 +65,10 @@ When running the benchmark with graph workloads following parameters are availab
 This new option will store the values created during a `GraphWorkload` execution in the given folder. For later runs 
 this data will be used to mimic that workload run, removing randomness.
 
+* -p nodebytesize=[an integer value] (default=500)
+This new option will set the size (in bytes) of the value (a string) stored in each node. This will determine how 
+much in terms of data size will be stored in the data base.
+
 These two parameters alter the graph structure a little bit: (See com.yahoo.ycsb.generator.graph.GraphDataRecorder to
  see the generation process)
 
