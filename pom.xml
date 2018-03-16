@@ -170,6 +170,16 @@ LICENSE file.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.21.0</version>
+        <configuration>
+          <parallel>methods</parallel>
+          <threadCount>10</threadCount>
+          <properties>
+            <property>
+              <name>junit</name>
+              <value>false</value>
+            </property>
+          </properties>
+        </configuration>
         <dependencies>
           <dependency>
             <groupId>org.apache.maven.surefire</groupId>
@@ -182,10 +192,6 @@ LICENSE file.
             <version>2.21.0</version>
           </dependency>
         </dependencies>
-        <configuration>
-          <parallel>methods</parallel>
-          <threadCount>10</threadCount>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -202,7 +208,7 @@ LICENSE file.
                 <requireMavenVersion>
                   <version>3.1.0</version>
                 </requireMavenVersion>
-              </rules>    
+              </rules>
             </configuration>
           </execution>
         </executions>
