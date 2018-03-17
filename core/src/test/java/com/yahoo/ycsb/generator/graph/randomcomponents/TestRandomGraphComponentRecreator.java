@@ -24,7 +24,6 @@ import com.yahoo.ycsb.generator.graph.Node;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileReader;
@@ -34,6 +33,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRandomGraphComponentRecreator {
@@ -44,9 +44,12 @@ public class TestRandomGraphComponentRecreator {
 
   @BeforeClass
   public static void setUp() throws IOException {
-    graphDataGenerator = Mockito.mock(GraphDataGenerator.class);
-    when(graphDataGenerator.getNode(anyLong())).thenReturn(Node.recreateNode(1));
-    when(graphDataGenerator.getEdge(anyLong())).thenReturn(Edge.recreateEdge(1));
+    graphDataGenerator = mock(GraphDataGenerator.class);
+    Node mockedNode = mock(Node.class);
+    Edge mockedEdge = mock(Edge.class);
+
+    when(graphDataGenerator.getNode(anyLong())).thenReturn(mockedNode);
+    when(graphDataGenerator.getEdge(anyLong())).thenReturn(mockedEdge);
 
     randomGraphComponentRecreator = new RandomGraphComponentRecreator(directory, graphDataGenerator);
   }
@@ -88,7 +91,7 @@ public class TestRandomGraphComponentRecreator {
         Charset.forName(new FileReader(randomGraphComponentRecreator.getComponentFile()).getEncoding()));
 
     for (String component : components) {
-      Assert.assertEquals(Long.parseLong(component), randomGraphComponentRecreator.randomNodeOrEdge());
+      Assert.assertEquals(component, randomGraphComponentRecreator.randomNodeOrEdge().name());
     }
   }
 }

@@ -34,8 +34,11 @@ import static com.yahoo.ycsb.workloads.CoreWorkload.*;
 import static java.io.File.separatorChar;
 
 /**
- * Workload class for graph databases.
- * This workload uses FileStoreClient from the filestore project.
+ * Workload class for graph data.
+ * <p>
+ * This workload will store the generated values in ycsbDir/benchmarkingData to be able to reproduce the
+ * benchmark run with the same data on multiple databases.
+ * You can change the directory with the parameter {@value DATA_SET_DIRECTORY_PROPERTY}.
  * <p>
  * Every node will have a size of 500 Bytes by default.
  * This can be changed via the {@value NODE_BYTE_SIZE_PROPERTY} parameter.
@@ -49,7 +52,7 @@ public class GraphWorkload extends Workload {
   private static final String DATA_SET_DIRECTORY_DEFAULT = new File(System.getProperty("user.dir"),
       "benchmarkingData").getAbsolutePath();
 
-  private static final String NODE_BYTE_SIZE_PROPERTY = "nodeByteSize";
+  private static final String NODE_BYTE_SIZE_PROPERTY = "nodebytesize";
   private static final String NODE_BYTE_SIZE_DEFAULT = "500";
   private static int nodeByteSize = Integer.parseInt(NODE_BYTE_SIZE_DEFAULT);
 
@@ -58,6 +61,10 @@ public class GraphWorkload extends Workload {
   private OperationOrderGenerator orderGenerator;
   private RandomGraphComponentGenerator randomGraphComponentGenerator;
 
+  /**
+   * @return the value set via the {@value NODE_BYTE_SIZE_PROPERTY} property. The default value is {@value
+   * NODE_BYTE_SIZE_DEFAULT}.
+   */
   public static int getNodeByteSize() {
     return nodeByteSize;
   }

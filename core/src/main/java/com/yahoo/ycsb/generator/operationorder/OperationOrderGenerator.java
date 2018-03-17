@@ -43,6 +43,16 @@ public abstract class OperationOrderGenerator extends StoringGenerator<String> {
     }
   }
 
+  /**
+   * Creates a {@link OperationOrderRecorder} or a {@link OperationOrderRecreator} depending on the given values.
+   *
+   * @param directory          which contains the recorded data or where the data will be recorded to.
+   * @param isRunPhase         tells the current execution phase (load or run).
+   * @param operationGenerator passed to the {@link OperationOrderRecorder} constructor to get the values to return.
+   * @return a subclass of the {@link OperationOrderGenerator} or null if it's not the run phase (during load
+   * this is not needed).
+   * @throws IOException if an I/O exception occurs.
+   */
   public static OperationOrderGenerator create(String directory,
                                                boolean isRunPhase,
                                                DiscreteGenerator operationGenerator) throws IOException {

@@ -58,15 +58,15 @@ public class Edge extends GraphComponent {
     this.endNode = endNode;
   }
 
-  private Edge(long id) {
-    super(id);
+  /**
+   * @return the number of edges created. Note that the id of the last created {@link Edge} is one smaller since we
+   * count from 0.
+   */
+  public static long getEdgeCount() {
+    return edgeIdCount;
   }
 
-  public static Edge recreateEdge(long id) {
-    return new Edge(id);
-  }
-
-  public static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
+  static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
     long id = Long.valueOf(values.get(ID_IDENTIFIER).toString());
     String label = values.get(LABEL_IDENTIFIER).toString();
     long startNodeId = Integer.valueOf(values.get(START_IDENTIFIER).toString());
@@ -82,24 +82,8 @@ public class Edge extends GraphComponent {
     return null;
   }
 
-  public static long getEdgeIdCount() {
-    return edgeIdCount;
-  }
-
   private static synchronized long getAndIncrementIdCounter() {
     return edgeIdCount++;
-  }
-
-  public static void presetId(int lastEdgeId) {
-    edgeIdCount = ++lastEdgeId;
-  }
-
-  public Node getStartNode() {
-    return startNode;
-  }
-
-  public Node getEndNode() {
-    return endNode;
   }
 
   @Override
@@ -121,5 +105,13 @@ public class Edge extends GraphComponent {
   @Override
   public Set<String> getFieldSet() {
     return EDGE_FIELDS_SET;
+  }
+
+  public Node getStartNode() {
+    return startNode;
+  }
+
+  public Node getEndNode() {
+    return endNode;
   }
 }

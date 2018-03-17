@@ -52,11 +52,7 @@ public class Node extends GraphComponent {
     super(label, id);
   }
 
-  private Node(long id) {
-    super(id);
-  }
-
-  public static Node recreateNode(Map<String, ByteIterator> values) {
+  static Node recreateNode(Map<String, ByteIterator> values) {
     int id = Integer.valueOf(values.get(ID_IDENTIFIER).toString());
     String label = values.get(LABEL_IDENTIFIER).toString();
 
@@ -66,20 +62,16 @@ public class Node extends GraphComponent {
     return node;
   }
 
-  public static Node recreateNode(long id) {
-    return new Node(id);
-  }
-
-  public static long getNodeIdCount() {
+  /**
+   * @return the number of nodes created. Note that the id of the last created {@link Node} is one smaller since we
+   * count from 0.
+   */
+  public static long getNodeCount() {
     return nodeIdCount;
   }
 
   private static synchronized long getAndIncrementIdCounter() {
     return nodeIdCount++;
-  }
-
-  public static void presetId(int lastNodeId) {
-    nodeIdCount = ++lastNodeId;
   }
 
   @Override

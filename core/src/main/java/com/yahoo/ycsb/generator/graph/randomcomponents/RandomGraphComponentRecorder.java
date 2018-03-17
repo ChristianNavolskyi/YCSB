@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.Random;
 
 /**
- * Class to pick a random GraphComponent ({@link Node} or {@link Edge}).
+ * Class to pick and store a random GraphComponent ({@link Node} or {@link Edge}).
  */
 public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator {
 
@@ -48,6 +48,11 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
   }
 
   @Override
+  public String getExceptionMessage() {
+    return "Could not create random graph component files or they are already present.";
+  }
+
+  @Override
   public boolean checkFiles(File directory, File... files) throws IOException {
     boolean directoryPresent = directory.exists() || directory.mkdirs();
     boolean filesCreated = true;
@@ -60,18 +65,28 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
   }
 
   @Override
-  public String getExceptionMessage() {
-    return "Could not create random graph component files or they are already present.";
+  long chooseRandomNodeId() {
+    int maxBound = (int) Node.getNodeCount() == 0 ? 1 : (int) Node.getNodeCount();
+
+    int id = random.nextInt(maxBound);
+
+    try {
+      writeLine(nodeFileWriter, String.valueOf(id));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return id;
   }
 
   @Override
   long chooseRandomEdgeId() {
-    int maxBound = (int) Edge.getEdgeIdCount() == 0 ? 1 : (int) Edge.getEdgeIdCount();
+    int maxBound = (int) Edge.getEdgeCount() == 0 ? 1 : (int) Edge.getEdgeCount();
 
     int id = random.nextInt(maxBound);
 
     try {
-      writeLine(edgeFileWriter, id);
+      writeLine(edgeFileWriter, String.valueOf(id));
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -80,13 +95,11 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
   }
 
   @Override
-  long chooseRandomNodeId() {
-    int maxBound = (int) Node.getNodeIdCount() == 0 ? 1 : (int) Node.getNodeIdCount();
-
-    int id = random.nextInt(maxBound);
+  RandomComponent randomNodeOrEdge() {
+    RandomComponent id = RandomComponent.values()[random.nextInt(2)];
 
     try {
-      writeLine(nodeFileWriter, id);
+      writeLine(componentFileWriter, id.name());
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -94,21 +107,8 @@ public class RandomGraphComponentRecorder extends RandomGraphComponentGenerator 
     return id;
   }
 
-  @Override
-  int randomNodeOrEdge() {
-    int id = random.nextInt(2);
-
-    try {
-      writeLine(componentFileWriter, id);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    return id;
-  }
-
-  private void writeLine(FileWriter fileWriter, int id) throws IOException {
-    fileWriter.write(String.valueOf(id));
+  private void writeLine(FileWriter fileWriter, String value) throws IOException {
+    fileWriter.write(value);
     fileWriter.write("\n");
     fileWriter.flush();
   }

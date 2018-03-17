@@ -31,8 +31,6 @@ import java.io.IOException;
  */
 public abstract class RandomGraphComponentGenerator extends StoringGenerator<GraphComponent> {
 
-  private static final int NODE = 0;
-  private static final int EDGE = 1;
   private static final String NODE_FILE_NAME = "nodeIds.txt";
   private static final String EDGE_FILE_NAME = "edgeIds.txt";
   private static final String COMPONENT_FILE_NAME = "componentIds.txt";
@@ -59,6 +57,18 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
     }
   }
 
+  /**
+   * Creates a {@link RandomGraphComponentRecorder} or a {@link RandomGraphComponentRecreator} depending on the given
+   * values.
+   *
+   * @param directory          which contains the recorded data or where the data will be recorded to.
+   * @param isRunPhase         tells the current execution phase (load or run).
+   * @param graphDataGenerator to get the actual {@link GraphComponent}s. This {@link GraphDataGenerator} has to be
+   *                           used during the benchmark.
+   * @return a subclass of the {@link RandomGraphComponentGenerator} or null if it's not the run phase (during load
+   * this is not needed).
+   * @throws IOException if an I/O exception occurs.
+   */
   public static RandomGraphComponentGenerator create(String directory,
                                                      boolean isRunPhase,
                                                      GraphDataGenerator graphDataGenerator) throws IOException {
@@ -101,6 +111,9 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
     return lastGraphComponent;
   }
 
+  /**
+   * @return a randomly chosen {@link Node}.
+   */
   public final Node chooseRandomNode() {
     long id = chooseRandomNodeId();
 
@@ -125,9 +138,34 @@ public abstract class RandomGraphComponentGenerator extends StoringGenerator<Gra
     return graphDataGenerator.getEdge(id);
   }
 
+  /**
+   * @return a random {@link Node} id which is already present.
+   */
   abstract long chooseRandomNodeId();
 
+  /**
+   * @return a random {@link Edge} id which is already present.
+   */
   abstract long chooseRandomEdgeId();
 
-  abstract int randomNodeOrEdge();
+  /**
+   * @return randomly on of the two possible values in {@link RandomComponent}.
+   */
+  abstract RandomComponent randomNodeOrEdge();
+
+  enum RandomComponent {
+    NODE,
+    EDGE,
+    INVALID;
+
+    static RandomComponent getRandomComponent(String value) {
+      if (NODE.name().equals(value)) {
+        return NODE;
+      } else if (EDGE.name().equals(value)) {
+        return EDGE;
+      } else {
+        return INVALID;
+      }
+    }
+  }
 }

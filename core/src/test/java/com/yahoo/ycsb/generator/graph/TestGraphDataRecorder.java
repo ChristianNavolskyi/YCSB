@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
@@ -68,9 +69,17 @@ public class TestGraphDataRecorder {
   }
 
   @After
-  public void tearDown() throws IOException {
-    Node.presetId(-1);
-    Edge.presetId(-1);
+  public void tearDown() throws IOException, NoSuchFieldException, IllegalAccessException {
+    Field field = Node.class.getDeclaredField("nodeIdCount");
+    field.setAccessible(true);
+    field.set(null, 0L);
+    field.setAccessible(false);
+
+    field = Edge.class.getDeclaredField("edgeIdCount");
+    field.setAccessible(true);
+    field.set(null, 0L);
+    field.setAccessible(false);
+
     FileUtils.deleteDirectory(directory);
   }
 
@@ -94,8 +103,8 @@ public class TestGraphDataRecorder {
     assertEquals(2, list.size());
     assertTrue(list.contains(graphDataRecorder.getNodeFile()));
     assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
-    assertEquals(0, Node.getNodeIdCount());
-    assertEquals(0, Edge.getEdgeIdCount());
+    assertEquals(0, Node.getNodeCount());
+    assertEquals(0, Edge.getEdgeCount());
   }
 
   @Test
@@ -117,7 +126,7 @@ public class TestGraphDataRecorder {
     assertEquals(4, list.size());
     assertTrue(list.contains(graphDataRecorder.getNodeFile()));
     assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
-    assertEquals(++nodeId, Node.getNodeIdCount());
+    assertEquals(++nodeId, Node.getNodeCount());
   }
 
   @Test(expected = IOException.class)

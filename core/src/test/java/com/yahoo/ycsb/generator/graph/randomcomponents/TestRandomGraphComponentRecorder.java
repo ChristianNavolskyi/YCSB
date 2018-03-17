@@ -26,11 +26,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -39,6 +39,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRandomGraphComponentRecorder {
@@ -46,13 +47,18 @@ public class TestRandomGraphComponentRecorder {
   private static String directory = System.getProperty("user.dir") + File.separator + "test";
   private static RandomGraphComponentRecorder randomGraphComponentRecorder;
   private static GraphDataGenerator generator;
+  private static Edge mockedEdge;
+  private static Node mockedNode;
   private int numberOfTimes = 100;
 
   @BeforeClass
   public static void initGenerator() throws IOException {
-    generator = Mockito.mock(GraphDataGenerator.class);
-    when(generator.getEdge(anyLong())).thenReturn(Edge.recreateEdge(1));
-    when(generator.getNode(anyLong())).thenReturn(Node.recreateNode(1));
+    generator = mock(GraphDataGenerator.class);
+    mockedEdge = mock(Edge.class);
+    mockedNode = mock(Node.class);
+    when(generator.getEdge(anyLong())).thenReturn(mockedEdge);
+    when(generator.getNode(anyLong())).thenReturn(mockedNode);
+
     FileUtils.deleteDirectory(directory);
   }
 
@@ -80,8 +86,11 @@ public class TestRandomGraphComponentRecorder {
   }
 
   @Test
-  public void chooseRandomEdgeId() throws IOException {
-    Edge.presetId(50);
+  public void chooseRandomEdgeId() throws IOException, IllegalAccessException, NoSuchFieldException {
+    Field field = Edge.class.getDeclaredField("edgeIdCount");
+    field.setAccessible(true);
+    field.set(null, 50L);
+    field.setAccessible(false);
     List<Long> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
@@ -101,8 +110,12 @@ public class TestRandomGraphComponentRecorder {
   }
 
   @Test
-  public void chooseRandomNodeId() throws IOException {
-    Node.presetId(50);
+  public void chooseRandomNodeId() throws IOException, IllegalAccessException, NoSuchFieldException {
+    Field field = Node.class.getDeclaredField("nodeIdCount");
+    field.setAccessible(true);
+    field.set(null, 50L);
+    field.setAccessible(false);
+
     List<Long> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
@@ -122,8 +135,18 @@ public class TestRandomGraphComponentRecorder {
   }
 
   @Test
-  public void chooseRandomNodeOrEdgeId() throws IOException {
-    List<Integer> results = new ArrayList<>();
+  public void chooseRandomNodeOrEdgeId() throws IOException, IllegalAccessException, NoSuchFieldException {
+    Field field = Node.class.getDeclaredField("nodeIdCount");
+    field.setAccessible(true);
+    field.set(null, 50L);
+    field.setAccessible(false);
+
+    field = Edge.class.getDeclaredField("edgeIdCount");
+    field.setAccessible(true);
+    field.set(null, 50L);
+    field.setAccessible(false);
+
+    List<RandomGraphComponentGenerator.RandomComponent> results = new ArrayList<>();
 
     for (int i = 0; i < numberOfTimes; i++) {
       results.add(randomGraphComponentRecorder.randomNodeOrEdge());
@@ -134,17 +157,20 @@ public class TestRandomGraphComponentRecorder {
     assertEquals(numberOfTimes, lines.size());
 
     for (int i = 0; i < results.size(); i++) {
-      Integer created = results.get(i);
-      Integer stored = Integer.parseInt(lines.get(i));
+      String created = results.get(i).name();
+      String stored = lines.get(i);
 
       assertEquals(created, stored);
     }
   }
 
-  @Test(timeout = 1000)
+  @Test(timeout = 100)
   public void testNextValue() {
     boolean hadNode = false;
     boolean hadEdge = false;
+
+    when(mockedNode.getComponentTypeIdentifier()).thenReturn("Node");
+    when(mockedEdge.getComponentTypeIdentifier()).thenReturn("Edge");
 
     while (!hadNode || !hadEdge) {
       GraphComponent randomComponent = randomGraphComponentRecorder.nextValue();

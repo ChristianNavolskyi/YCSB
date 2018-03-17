@@ -28,18 +28,12 @@ import java.util.Set;
 public abstract class GraphComponent {
   static final String ID_IDENTIFIER = "id";
   static final String LABEL_IDENTIFIER = "label";
-  private static final String RECREATED = "Recreated";
   private final long id;
   private final String label;
 
   GraphComponent(String label, long id) {
     this.id = id;
     this.label = label;
-  }
-
-  GraphComponent(long id) {
-    this.id = id;
-    this.label = RECREATED;
   }
 
   public final long getId() {

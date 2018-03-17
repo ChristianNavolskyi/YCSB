@@ -52,11 +52,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
   private Type valueType;
   private Graph lastValue = new Graph();
 
-  /**
-   * @param directory  in which the files for nodes and edges should be stored/restored from.
-   * @param isRunPhase presets node and edge ids if is run phase.
-   * @throws IOException if the directory of the files can't be created.
-   */
   GraphDataGenerator(String directory, boolean isRunPhase) throws IOException {
     GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
     gson = gsonBuilder.create();
@@ -79,6 +74,15 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     }
   }
 
+  /**
+   * Creates a {@link GraphDataRecorder} or a {@link GraphDataRecreator} depending on the given values.
+   *
+   * @param directory  which contains the recorded data or where the data will be recorded to.
+   * @param isRunPhase tells the current execution phase (load or run).
+   * @param properties passed to the {@link GraphDataRecorder} constructor to read the needed properties.
+   * @return a subclass of the {@link GraphDataGenerator}.
+   * @throws IOException if an I/O exception occurs.
+   */
   public static GraphDataGenerator create(String directory,
                                           boolean isRunPhase,
                                           Properties properties) throws IOException {
@@ -108,11 +112,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
   }
 
   @Override
-  public final Graph lastValue() {
-    return lastValue;
-  }
-
-  @Override
   public final Graph nextValue() {
     Graph graph = new Graph();
     try {
@@ -126,10 +125,23 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     return graph;
   }
 
+  @Override
+  public final Graph lastValue() {
+    return lastValue;
+  }
+
+  /**
+   * @param key id of the {@link Node} if already generated via nextValue().
+   * @return a {@link Node} or null, if not generated jet.
+   */
   public Node getNode(long key) {
     return nodeMap.get(key);
   }
 
+  /**
+   * @param key id of the {@link Edge} if already generated via nextValue().
+   * @return a {@link Edge} or null, if not generated jet.
+   */
   public Edge getEdge(long key) {
     return edgeMap.get(key);
   }
@@ -172,5 +184,9 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     }
   }
 
+  /**
+   * @return the next generated value.
+   * @throws IOException if an I/O exception occurs.
+   */
   abstract Graph createNextValue() throws IOException;
 }

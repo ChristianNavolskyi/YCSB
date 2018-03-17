@@ -52,21 +52,6 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
   }
 
   @Override
-  long chooseRandomNodeId() {
-    return getNextValue(nodeIterator);
-  }
-
-  @Override
-  long chooseRandomEdgeId() {
-    return getNextValue(edgeIterator);
-  }
-
-  @Override
-  int randomNodeOrEdge() {
-    return (int) getNextValue(componentIterator);
-  }
-
-  @Override
   public boolean checkFiles(File directory, File... files) {
     boolean directoryPresent = directory.exists() && directory.isDirectory();
     boolean filesCreated = true;
@@ -78,16 +63,31 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
     return directoryPresent && filesCreated;
   }
 
+  @Override
+  long chooseRandomNodeId() {
+    return Long.parseLong(getNextValue(nodeIterator));
+  }
+
+  @Override
+  long chooseRandomEdgeId() {
+    return Long.parseLong(getNextValue(edgeIterator));
+  }
+
+  @Override
+  RandomComponent randomNodeOrEdge() {
+    return RandomComponent.getRandomComponent(getNextValue(componentIterator));
+  }
+
   private ListIterator<String> getIterator(File file) throws IOException {
     return Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file)
         .getEncoding())).listIterator();
   }
 
-  private long getNextValue(ListIterator<String> iterator) {
+  private String getNextValue(ListIterator<String> iterator) {
     if (iterator.hasNext()) {
-      return Long.parseLong(iterator.next());
+      return iterator.next();
     }
 
-    return 0;
+    return "";
   }
 }

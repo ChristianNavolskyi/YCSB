@@ -25,7 +25,7 @@ import java.io.IOException;
 
 /**
  * This class generates {@link String}s which represent operations for a {@link com.yahoo.ycsb.DB}.
- * The value of that String is saves in a operations.txt file for later reproduction.
+ * The value of that string is saves in a operations.txt file for later reproduction.
  */
 public class OperationOrderRecorder extends OperationOrderGenerator {
 

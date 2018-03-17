@@ -40,10 +40,20 @@ public class Graph {
     return edges;
   }
 
+  /**
+   * Adds a {@link Node} the the list of nodes.
+   *
+   * @param node to add.
+   */
   public void addNode(Node node) {
     this.nodes.add(node);
   }
 
+  /**
+   * Adds a {@link Edge} the the list of edges.
+   *
+   * @param edge to add.
+   */
   public void addEdge(Edge edge) {
     edges.add(edge);
   }

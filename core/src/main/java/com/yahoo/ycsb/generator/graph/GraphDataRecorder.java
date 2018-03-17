@@ -29,11 +29,23 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Generates graph data with a industrial structure.
+ * Generates graph data with an "industrial" structure.
  * <p>
- * The factory has orders, machines and produces products by a design.
- * Every order has ten products which are all produced by the machine.
- * In the production process multiple tests are executed (128 by default) and the date of production is monitored.
+ * Structure:
+ * <p>
+ * At the top is the FACTORY.
+ * <p>
+ * A FACTORY has MACHINEs, DESIGNs, and receives ORDERS.
+ * <p>
+ * A MACHINE produces a PRODUCT.
+ * <p>
+ * ORDERS have single ORDERs under them.
+ * <p>
+ * A ORDER includes a PRODUCT (or multiple). - Set by the {@value PRODUCTS_PER_ORDER_KEY} parameter.
+ * <p>
+ * A PRODUCT is produced on a DATE and have TESTS run on them.
+ * <p>
+ * TESTS have a TESTPARAMETER (or multiple). - Set by the {@value TEST_PARAMETER_COUNT_KEY} parameter.
  */
 public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
@@ -85,27 +97,9 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     }
   }
 
-  private int getLastId(File file) throws IOException {
-    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
-    String lastEntry = lines.get(lines.size() - 1);
-
-    Map<String, ByteIterator> values = getGson().fromJson(new JsonReader(new StringReader(lastEntry)), getValueType());
-
-    return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
-  }
-
   @Override
   public String getExceptionMessage() {
     return "Could not create graph data files or they are already present.";
-  }
-
-  @Override
-  Graph createNextValue() throws IOException {
-    setLastValue(createGraph());
-
-    saveGraphContentsAndFillValueOfNodes(getLastValue());
-
-    return getLastValue();
   }
 
   @Override
@@ -121,10 +115,28 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
+  Graph createNextValue() throws IOException {
+    setLastValue(createGraph());
+
+    saveGraphContentsAndFillValueOfNodes(getLastValue());
+
+    return getLastValue();
+  }
+
+  @Override
   public void close() throws IOException {
     for (String key : fileWriterMap.keySet()) {
       fileWriterMap.get(key).close();
     }
+  }
+
+  private int getLastId(File file) throws IOException {
+    List<String> lines = Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file).getEncoding()));
+    String lastEntry = lines.get(lines.size() - 1);
+
+    Map<String, ByteIterator> values = getGson().fromJson(new JsonReader(new StringReader(lastEntry)), getValueType());
+
+    return Integer.parseInt(values.get(Node.ID_IDENTIFIER).toString());
   }
 
   private void saveGraphContentsAndFillValueOfNodes(Graph graph) throws IOException {

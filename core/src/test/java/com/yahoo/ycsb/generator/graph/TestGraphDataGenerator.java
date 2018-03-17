@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -97,7 +98,7 @@ public class TestGraphDataGenerator {
   }
 
   @Test
-  public void testRunPhaseWithLoadData() throws IOException {
+  public void testRunPhaseWithLoadData() throws IOException, NoSuchFieldException, IllegalAccessException {
     GraphDataGenerator recorder = GraphDataGenerator.create(testDirectory.getAbsolutePath(), false, properties);
 
     assertTrue(recorder instanceof GraphDataRecorder);
@@ -106,8 +107,15 @@ public class TestGraphDataGenerator {
       recorder.nextValue();
     }
 
-    Node.presetId(-1);
-    Edge.presetId(-1);
+    Field field = Node.class.getDeclaredField("nodeIdCount");
+    field.setAccessible(true);
+    field.set(null, 0L);
+    field.setAccessible(false);
+
+    field = Edge.class.getDeclaredField("edgeIdCount");
+    field.setAccessible(true);
+    field.set(null, 0L);
+    field.setAccessible(false);
 
     recorder = GraphDataGenerator.create(testDirectory.getAbsolutePath(), true, properties);
 
@@ -119,7 +127,7 @@ public class TestGraphDataGenerator {
       graphs.add(recorder.nextValue());
     }
 
-    GraphDataGenerator recreator = GraphDataRecreator.create(testDirectory.getAbsolutePath(), true, properties);
+    GraphDataGenerator recreator = GraphDataGenerator.create(testDirectory.getAbsolutePath(), true, properties);
 
     assertTrue(recreator instanceof GraphDataRecreator);
 
