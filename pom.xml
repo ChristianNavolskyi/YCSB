@@ -166,6 +166,7 @@ LICENSE file.
       </plugins>
     </pluginManagement>
     <plugins>
+      <!-- Used to execute junit tests but crashes on some bindings.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -192,7 +193,7 @@ LICENSE file.
             <version>2.21.0</version>
           </dependency>
         </dependencies>
-      </plugin>
+      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
