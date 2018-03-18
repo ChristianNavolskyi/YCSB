@@ -117,6 +117,7 @@ LICENSE file.
     <module>accumulo1.7</module>
     <module>accumulo1.8</module>
     <module>aerospike</module>
+    <module>apachejena</module>
     <module>arangodb3</module>
     <module>arangodb</module>
     <module>asynchbase</module>
