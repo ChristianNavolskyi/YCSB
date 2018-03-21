@@ -11,12 +11,26 @@
   </parent>
 
   <artifactId>apachejena-binding</artifactId>
+  <name>Apache Jena TDB binding</name>
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>com.yahoo.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>apache-jena-libs</artifactId>
+      <version>${apachejena.version}</version>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

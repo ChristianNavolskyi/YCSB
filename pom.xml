@@ -76,6 +76,7 @@ LICENSE file.
     <accumulo.1.7.version>1.7.3</accumulo.1.7.version>
     <accumulo.1.8.version>1.8.1</accumulo.1.8.version>
     <aerospike.version>3.1.2</aerospike.version>
+    <apachejena.version>3.6.0</apachejena.version>
     <arangodb.version>2.7.3</arangodb.version>
     <arangodb3.version>4.1.7</arangodb3.version>
     <asynchbase.version>1.7.1</asynchbase.version>
