@@ -1,13 +1,27 @@
+/*
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You
+ * may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License. See accompanying
+ * LICENSE file.
+ */
+
 package com.yahoo.ycsb.db;
 
 import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.generator.graph.Edge;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.tdb.TDBFactory;
 
 import java.io.File;
@@ -20,7 +34,7 @@ public class ApacheJenaClient extends DB {
 
   private final String outputDirectoryProperty = "outputdirectory";
   private final String outputDirectoryDefault = new File(System.getProperty("user.dir"),
-      "database").getAbsolutePath();
+      "apachejena_database").getAbsolutePath();
   private Dataset dataset;
 
   @Override
@@ -40,14 +54,37 @@ public class ApacheJenaClient extends DB {
     try {
       Model model = dataset.getDefaultModel();
 
-      Resource resource = model.createResource(key);
+      Resource resource = getResource(table, key, model);
 
-      for (String field : fields) {
-        Property property = model.createProperty(field);
+      if (fields == null) {
+        SimpleSelector simpleSelector;
+        if (table.equals(Edge.EDGE_IDENTIFIER)) {
+          simpleSelector = new SimpleSelector(null, (Property) resource, (RDFNode) null);
+        } else {
+          simpleSelector = new SimpleSelector(resource, null, (RDFNode) null);
+        }
 
-        if (model.contains(resource, property)) {
-          String value = resource.getProperty(property).getObject().toString();
-          result.put(field, new StringByteIterator(value));
+        StmtIterator stmtIterator = model.listStatements(simpleSelector);
+
+        while (stmtIterator.hasNext()) {
+          Statement statement = stmtIterator.nextStatement();
+          RDFNode object = statement.getObject();
+
+          addWithLabelOfEdgeToMap(model, result, object, statement.getPredicate(), null);
+        }
+      } else {
+        for (String field : fields) {
+          Property property = model.createProperty(field);
+          SimpleSelector simpleSelector = new SimpleSelector(resource, property, (RDFNode) null);
+
+          StmtIterator stmtIterator = model.listStatements(simpleSelector);
+
+          while (stmtIterator.hasNext()) {
+            Statement statement = stmtIterator.nextStatement();
+            RDFNode object = statement.getObject();
+
+            addWithLabelOfEdgeToMap(model, result, object, statement.getPredicate(), fields);
+          }
         }
       }
 
@@ -73,9 +110,27 @@ public class ApacheJenaClient extends DB {
     try {
       Model model = dataset.getDefaultModel();
 
-      Resource resource = model.getResource(startkey);
+      Resource resource;
 
-      scanFieldsRecursively(model, resource, recordcount, fields, result);
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        Statement statement = model.getProperty(model.createProperty(startkey), model.createProperty(Edge
+            .START_IDENTIFIER));
+
+        if (statement == null) {
+          return Status.NOT_FOUND;
+        }
+
+        resource = model.createResource(new AnonId(statement.getObject().toString()));
+
+        if (isResourceNew(resource)) {
+          return Status.NOT_FOUND;
+        }
+      } else {
+        resource = getResource(table, startkey, model);
+      }
+
+      // Scans the data set in a depth first fashion.
+      scanFields(model, resource, recordcount, fields, result);
     } finally {
       dataset.end();
     }
@@ -93,16 +148,21 @@ public class ApacheJenaClient extends DB {
 
     try {
       Model model = dataset.getDefaultModel();
-      Resource resource = model.getResource(key);
+      Resource resource = getResource(table, key, model);
+
+      List<Statement> statements = new ArrayList<>();
 
       for (String field : values.keySet()) {
-        Property property = model.getProperty(field);
+        Property property = model.createProperty(field);
+        SimpleSelector simpleSelector = new SimpleSelector(resource, property, (RDFNode) null);
 
-        if (model.contains(resource, property)) {
-          resource.removeAll(property);
-          resource.addProperty(property, values.get(field).toString());
-        }
+        StmtIterator stmtIterator = model.listStatements(simpleSelector);
+
+        stmtIterator.forEachRemaining(statement ->
+            statements.add(model.createStatement(resource, statement.getPredicate(), values.get(field).toString())));
       }
+
+      model.add(statements);
 
       dataset.commit();
     } finally {
@@ -120,23 +180,17 @@ public class ApacheJenaClient extends DB {
       Model model = dataset.getDefaultModel();
 
       if (table.equals(Edge.EDGE_IDENTIFIER)) {
-        Resource startNode = model.createResource(values.get(Edge.START_IDENTIFIER).toString());
-        Property property = model.createProperty(values.get(Edge.LABEL_IDENTIFIER).toString());
-        Resource endNode = model.createResource(values.get(Edge.END_IDENTIFIER).toString());
+        Resource startNode = model.createResource(new AnonId(values.get(Edge.START_IDENTIFIER).toString()));
+
+        Property property = model.createProperty(key);
+        addEdgeProperties(model, property, values);
+
+        Resource endNode = model.createResource(new AnonId(values.get(Edge.END_IDENTIFIER).toString()));
 
         model.add(startNode, property, endNode);
-
       } else {
-        List<Statement> statements = new ArrayList<>();
-
-        for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-          Statement statement = model.createStatement(
-              model.createResource(key),
-              model.createProperty(entry.getKey()),
-              model.createResource(entry.getValue().toString()));
-
-          statements.add(statement);
-        }
+        Resource resource = model.createResource(new AnonId(key));
+        List<Statement> statements = createStatementsForNode(model, resource, values);
 
         if (statements.isEmpty()) {
           return Status.ERROR;
@@ -160,10 +214,16 @@ public class ApacheJenaClient extends DB {
     try {
       Model model = dataset.getDefaultModel();
 
-      Resource resource = model.getResource(key);
+      if (table.equals(Edge.EDGE_IDENTIFIER)) {
+        Property property = model.getProperty(key);
 
-      model.removeAll(resource, null, null);
-      model.removeAll(null, null, resource);
+        model.removeAll(null, property, null);
+      } else {
+        Resource resource = getResource(table, key, model);
+
+        model.removeAll(resource, null, null);
+        model.removeAll(null, null, resource);
+      }
 
       dataset.commit();
     } finally {
@@ -173,27 +233,86 @@ public class ApacheJenaClient extends DB {
     return Status.OK;
   }
 
-  private void scanFieldsRecursively(Model model,
-                                     Resource resource,
-                                     int recordcount,
-                                     Set<String> fields,
-                                     Vector<HashMap<String, ByteIterator>> result) {
-    if (recordcount > 0) {
-      HashMap<String, ByteIterator> values = new HashMap<>();
+  private boolean isResourceNew(Resource resource) {
+    return !resource.listProperties().hasNext();
+  }
 
-      for (String field : fields) {
-        Property property = model.createProperty(field);
+  private void scanFields(Model model,
+                          Resource resource,
+                          int recordcount,
+                          Set<String> fields,
+                          Vector<HashMap<String, ByteIterator>> result) {
+    if (result.size() == recordcount) {
+      return;
+    }
 
-        if (model.contains(resource, property)) {
-          Resource nextResource = resource.getProperty(property).getResource();
-          values.put(field, new StringByteIterator(nextResource.toString()));
-          scanFieldsRecursively(model, nextResource, --recordcount, fields, result);
-        }
-      }
+    HashMap<String, ByteIterator> map = new HashMap<>();
+    result.add(map);
 
-      if (!values.isEmpty()) {
-        result.add(values);
+    StmtIterator stmtIterator = resource.listProperties();
+
+    while (stmtIterator.hasNext()) {
+      Statement statement = stmtIterator.nextStatement();
+      RDFNode object = statement.getObject();
+
+      addWithLabelOfEdgeToMap(model, map, object, statement.getPredicate(), fields);
+
+      if (object.isResource()) {
+        scanFields(model, object.asResource(), recordcount, fields, result);
       }
     }
+
+    if (map.isEmpty()) {
+      result.remove(map);
+    }
+  }
+
+  private void addWithLabelOfEdgeToMap(Model model,
+                                       Map<String, ByteIterator> map,
+                                       RDFNode object,
+                                       Property property,
+                                       Set<String> fields) {
+    Statement statement = model.getProperty(property, model.createProperty(Edge.LABEL_IDENTIFIER));
+
+    if (statement == null && (fields == null || fields.contains(property.toString()))) {
+      map.put(property.toString(), new StringByteIterator(object.toString()));
+    } else if (statement != null && (fields == null || fields.contains(property.toString()))) {
+      map.put(statement.getObject().toString(), new StringByteIterator(object.toString()));
+    }
+  }
+
+  private List<Statement> createStatementsForNode(Model model, Resource resource, Map<String, ByteIterator> values) {
+    List<Statement> statements = new ArrayList<>();
+
+    for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
+      Statement statement = model.createStatement(
+          resource,
+          model.createProperty(entry.getKey()),
+          entry.getValue().toString());
+
+      statements.add(statement);
+    }
+
+    return statements;
+  }
+
+  private void addEdgeProperties(Model model, Property property, Map<String, ByteIterator> values) {
+    for (String field : Edge.EDGE_FIELDS_SET) {
+      if (field.equals(Edge.START_IDENTIFIER) || field.equals(Edge.END_IDENTIFIER)) {
+        property.addProperty(model.createProperty(field), model.createResource(values.get(field).toString()));
+      } else {
+        property.addProperty(model.createProperty(field), values.get(field).toString());
+      }
+    }
+  }
+
+  private Resource getResource(String table, String key, Model model) {
+    Resource resource;
+    if (table.equals(Edge.EDGE_IDENTIFIER)) {
+      resource = model.createProperty(key);
+    } else {
+      resource = model.createResource(new AnonId(key));
+    }
+    return resource;
   }
 }
