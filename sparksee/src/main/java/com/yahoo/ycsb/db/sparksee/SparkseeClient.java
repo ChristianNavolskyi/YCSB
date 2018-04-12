@@ -245,11 +245,11 @@ public class SparkseeClient extends DB {
 
     if (fields != null && !fields.isEmpty()) {
       fields.forEach(field -> {
-        String availableValue = availableAttributes.get(field);
-        if (availableValue != null) {
-          result.put(field, new StringByteIterator(availableValue));
-        }
-      });
+          String availableValue = availableAttributes.get(field);
+          if (availableValue != null) {
+            result.put(field, new StringByteIterator(availableValue));
+          }
+        });
     } else {
       availableAttributes.forEach((attributeName, attributeValue) ->
           result.put(attributeName, new StringByteIterator(attributeValue)));
@@ -269,10 +269,10 @@ public class SparkseeClient extends DB {
 
     try (Objects outgoingEdges = graph.explode(component, getEdgeType(graph), EdgesDirection.Outgoing)) {
       outgoingEdges.forEach(edge -> {
-        addValuesToMap(graph, edge, fields, values);
-        result.add(values);
-        scanEdges(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result);
-      });
+          addValuesToMap(graph, edge, fields, values);
+          result.add(values);
+          scanEdges(graph, graph.getEdgeData(edge).getHead(), recordcount, fields, result);
+        });
     }
   }
 
@@ -300,11 +300,11 @@ public class SparkseeClient extends DB {
     HashMap<String, String> availableAttributes = new HashMap<>();
 
     attributes.iterator().forEachRemaining(attribute -> {
-      String attributeName = graph.getAttribute(attribute).getName();
-      String attributeValue = graph.getAttribute(component, attribute).getString();
+        String attributeName = graph.getAttribute(attribute).getName();
+        String attributeValue = graph.getAttribute(component, attribute).getString();
 
-      availableAttributes.put(attributeName, attributeValue);
-    });
+        availableAttributes.put(attributeName, attributeValue);
+      });
 
     return availableAttributes;
   }
