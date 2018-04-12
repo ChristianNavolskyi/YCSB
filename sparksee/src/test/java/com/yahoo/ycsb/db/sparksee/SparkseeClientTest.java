@@ -84,6 +84,7 @@ public class SparkseeClientTest {
   public void tearDownClass() throws DBException {
     sparkseeClient.cleanup();
     basePath.delete();
+    new File(basePath.getAbsolutePath() + ".log").delete();
   }
 
   @Test
