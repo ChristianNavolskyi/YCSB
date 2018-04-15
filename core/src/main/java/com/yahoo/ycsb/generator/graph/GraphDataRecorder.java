@@ -148,21 +148,22 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     } else if (orders == null) {
       this.orders = new Node("Orders");
       graph.addNode(this.orders);
-      graph.addEdge(new Edge("receives", factory, orders));
+      graph.addEdge(new Edge("has", factory, orders));
     } else if (design == null) {
       this.design = new Node("Design");
       graph.addNode(this.design);
-      graph.addEdge(new Edge("builds", factory, design));
+      graph.addEdge(new Edge("builds", machine, design));
     } else if (productPerOrderCounter == 0) {
       currentOrder = new Node("Order");
       graph.addNode(currentOrder);
-      graph.addEdge(new Edge("ordered", orders, currentOrder));
+      graph.addEdge(new Edge("have", orders, currentOrder));
       productPerOrderCounter = productsPerOrder;
     } else if (shouldCreateProduct) {
       product = new Node("Product");
       graph.addNode(product);
+      graph.addEdge(new Edge("ordered", currentOrder, product));
+      graph.addEdge(new Edge("templateFor", design, product));
       graph.addEdge(new Edge("produced", machine, product));
-      graph.addEdge(new Edge("includes", currentOrder, product));
       shouldCreateProduct = false;
     } else if (shouldCreateDate) {
       Node date = new Node("Date");
@@ -177,19 +178,23 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     } else if (testCounter < testParameterCount) {
       Node testParameterNode = new Node("TestParameterNr:" + testCounter);
       graph.addNode(testParameterNode);
-      graph.addEdge(new Edge("hasTested", tests, testParameterNode));
+      graph.addEdge(new Edge("include", tests, testParameterNode));
       testCounter++;
     }
 
     if (isTestingFinished()) {
-      shouldCreateProduct = true;
-      shouldCreateDate = true;
-      shouldCreateTests = true;
-      testCounter = 0;
-      productPerOrderCounter--;
+      resetProductParameters();
     }
 
     return graph;
+  }
+
+  private void resetProductParameters() {
+    shouldCreateProduct = true;
+    shouldCreateDate = true;
+    shouldCreateTests = true;
+    testCounter = 0;
+    productPerOrderCounter--;
   }
 
   private boolean isTestingFinished() {
