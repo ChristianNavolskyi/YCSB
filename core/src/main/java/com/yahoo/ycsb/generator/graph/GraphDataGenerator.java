@@ -24,6 +24,7 @@ import com.google.gson.stream.JsonReader;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.ByteIteratorAdapter;
 import com.yahoo.ycsb.generator.StoringGenerator;
+import com.yahoo.ycsb.workloads.GraphWorkload;
 
 import java.io.File;
 import java.io.FileReader;
@@ -42,25 +43,34 @@ import java.util.Properties;
  */
 public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
+  static final String TEST_PARAMETER_COUNT_KEY = "testparametercount";
+  static final int TEST_PARAMETER_COUNT_DEFAULT_VALUE = 128;
+  static final String PRODUCTS_PER_ORDER_KEY = "productsperorder";
+  static final int PRODUCTS_PER_ORDER_DEFAULT_VALUE = 10;
+
   static final String LOAD_EDGE_FILE_NAME = Edge.EDGE_IDENTIFIER + "load.json";
   static final String LOAD_NODE_FILE_NAME = Node.NODE_IDENTIFIER + "load.json";
 
   private static final String RUN_EDGE_FILE_NAME = Edge.EDGE_IDENTIFIER + "run.json";
   private static final String RUN_NODE_FILE_NAME = Node.NODE_IDENTIFIER + "run.json";
+
   private static final String CLASS_NAME = GraphDataGenerator.class.getSimpleName();
+
+  private final int testParameterCount;
+  private final int productsPerOrder;
+  private final boolean onlyCreateNodes;
 
   private final Map<Long, Edge> edgeMap = new HashMap<>();
   private final Map<Long, Node> nodeMap = new HashMap<>();
   private final File edgeFile;
   private final File nodeFile;
-
   private long lastEdgeId;
   private long lastNodeId;
   private Gson gson;
   private Type valueType;
   private Graph lastValue = new Graph();
 
-  GraphDataGenerator(String directory, boolean isRunPhase) throws IOException {
+  GraphDataGenerator(String directory, boolean isRunPhase, Properties properties) throws IOException {
     GsonBuilder gsonBuilder = new GsonBuilder().registerTypeAdapter(ByteIterator.class, new ByteIteratorAdapter());
     gson = gsonBuilder.create();
 
@@ -80,6 +90,13 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
     if (!checkFiles(directoryFile, nodeFile, edgeFile)) {
       throw new IOException(getExceptionMessage());
     }
+
+    testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
+        String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));
+    productsPerOrder = Integer.valueOf(properties.getProperty(PRODUCTS_PER_ORDER_KEY,
+        String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
+    onlyCreateNodes = Boolean.parseBoolean(properties.getProperty(GraphWorkload.ONLY_WORK_WITH_NODES_PROPERTY,
+        GraphWorkload.ONLY_WORK_WITH_NODES_DEFAUL));
   }
 
   /**
@@ -116,7 +133,7 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 //  1    1       1     recreator
     if (isRunPhase && runDataPresent || !isRunPhase && loadDataPresent) {
       System.out.println(CLASS_NAME + " creating RECREATOR.");
-      graphGenerator = new GraphDataRecreator(directory, isRunPhase);
+      graphGenerator = new GraphDataRecreator(directory, isRunPhase, properties);
     } else {
       System.out.println(CLASS_NAME + " creating RECORDER.");
       graphGenerator = new GraphDataRecorder(directory, isRunPhase, properties);
@@ -146,6 +163,18 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
   @Override
   public final Graph lastValue() {
     return lastValue;
+  }
+
+  int getTestParameterCount() {
+    return testParameterCount;
+  }
+
+  int getProductsPerOrder() {
+    return productsPerOrder;
+  }
+
+  boolean isOnlyCreateNodes() {
+    return onlyCreateNodes;
   }
 
   public long getLastNodeId() {

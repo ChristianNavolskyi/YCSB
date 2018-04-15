@@ -27,6 +27,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
@@ -59,12 +60,12 @@ public class TestGraphDataRecreator {
 
   @Test(expected = IOException.class)
   public void tryLoadingLoadFilesButFailBecauseFolderDoesNotContainNecessaryFiles() throws IOException {
-    new GraphDataRecreator(System.getProperty("user.dir"), false);
+    new GraphDataRecreator(System.getProperty("user.dir"), false, new Properties());
   }
 
   @Test(expected = IOException.class)
   public void tryLoadingRunFilesButFailBecauseFolderDoesNotContainNecessaryFiles() throws IOException {
-    new GraphDataRecreator(System.getProperty("user.dir"), true);
+    new GraphDataRecreator(System.getProperty("user.dir"), true, new Properties());
   }
 
   @Test
@@ -161,11 +162,11 @@ public class TestGraphDataRecreator {
 
 
   private GraphDataRecreator getGraphDataRecreatorInLoadPhase() throws IOException {
-    return new GraphDataRecreator(directory, false);
+    return new GraphDataRecreator(directory, false, new Properties());
   }
 
   private GraphDataRecreator getGraphDataRecreatorInRunPhase() throws IOException {
-    return new GraphDataRecreator(directory, true);
+    return new GraphDataRecreator(directory, true, new Properties());
   }
 
   private void checkCorrectGraphStructure(GraphDataRecreator graphDataRecreator, List<Graph> graphList, int numberOfNodes) {

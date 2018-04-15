@@ -27,6 +27,7 @@ import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class takes a data set of graph data and reproduces it.
@@ -36,13 +37,14 @@ public class GraphDataRecreator extends GraphDataGenerator {
   private final List<Graph> graphs;
   private Map<Long, Edge> loadEdgeMap = new HashMap<>();
   private int currentPosition = -1;
+  private Map<Long, Node> loadNodeMap;
 
-  GraphDataRecreator(String inputDirectory, boolean isRunPhase) throws IOException {
-    super(inputDirectory, isRunPhase);
+  GraphDataRecreator(String inputDirectory, boolean isRunPhase, Properties properties) throws IOException {
+    super(inputDirectory, isRunPhase, properties);
 
     Map<Long, Node> nodes = parseNodes(getNodeFile());
 
-    Map<Long, Node> loadNodeMap = new HashMap<>();
+    loadNodeMap = new HashMap<>();
     if (isRunPhase) {
       loadNodeMap = parseNodes(new File(inputDirectory, LOAD_NODE_FILE_NAME));
       addNodesFromLoadPhaseIfPresent(nodes, loadNodeMap);
@@ -51,26 +53,43 @@ public class GraphDataRecreator extends GraphDataGenerator {
     }
 
     Map<Long, Edge> edges = parseEdges(getEdgeFile(), nodes);
-    graphs = createSingleGraphs(edges, getLastLoadId(loadNodeMap));
+    final Long lastLoadId = getLastLoadId(loadNodeMap);
+
+    if (isOnlyCreateNodes()) {
+      graphs = nodes.values().stream()
+          .sorted(Comparator.comparing(GraphComponent::getId))
+          .filter(node -> node.getId() > lastLoadId)
+          .map(node -> {
+              Graph graph = new Graph();
+              graph.addNode(node);
+              return graph;
+            })
+          .collect(Collectors.toList());
+    } else {
+      graphs = createSingleGraphs(edges, lastLoadId);
+    }
   }
 
   @Override
   List<Graph> getGraphs(int numberOfGraphs) {
-    List<Graph> result = new ArrayList<>();
+    List<Graph> singleGraphs;
 
-    List<Graph> singleGraphs = createSingleGraphs(loadEdgeMap, -1);
-
-    if (numberOfGraphs > graphs.size()) {
-      numberOfGraphs = graphs.size();
-    }
-
-    for (int i = 0; i < numberOfGraphs; i++) {
-      result.add(singleGraphs.get(i));
+    if (isOnlyCreateNodes()) {
+      singleGraphs = loadNodeMap.values().stream()
+          .sorted(Comparator.comparing(GraphComponent::getId))
+          .map(node -> {
+              Graph graph = new Graph();
+              graph.addNode(node);
+              return graph;
+            })
+          .collect(Collectors.toList());
+    } else {
+      singleGraphs = createSingleGraphs(loadEdgeMap, -1);
     }
 
     loadEdgeMap.clear();
 
-    return result;
+    return singleGraphs;
   }
 
   @Override
@@ -208,8 +227,8 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return result;
   }
 
-  private Long getLastLoadId(Map<Long, Node> loadNodeMap) {
-    Set<Long> loadNodeIds = new TreeMap<>(loadNodeMap).keySet();
+  private Long getLastLoadId(Map<Long, Node> nodeMap) {
+    Set<Long> loadNodeIds = new TreeMap<>(nodeMap).keySet();
 
     Long[] loadIds = loadNodeIds.toArray(new Long[0]);
 

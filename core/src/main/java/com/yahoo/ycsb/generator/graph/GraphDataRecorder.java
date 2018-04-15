@@ -46,14 +46,6 @@ import java.util.*;
  */
 public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
-  private static final String TEST_PARAMETER_COUNT_KEY = "testparametercount";
-  private static final int TEST_PARAMETER_COUNT_DEFAULT_VALUE = 128;
-  private static final String PRODUCTS_PER_ORDER_KEY = "productsperorder";
-  private static final int PRODUCTS_PER_ORDER_DEFAULT_VALUE = 10;
-
-  private final int testParameterCount;
-  private final int productsPerOrder;
-
   private Node factory;
   private Node orders;
   private Node machine;
@@ -71,12 +63,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   private Map<String, FileWriter> fileWriterMap;
 
   GraphDataRecorder(String outputDirectory, boolean isRunPhase, Properties properties) throws IOException {
-    super(outputDirectory, isRunPhase);
-
-    testParameterCount = Integer.valueOf(properties.getProperty(TEST_PARAMETER_COUNT_KEY,
-        String.valueOf(TEST_PARAMETER_COUNT_DEFAULT_VALUE)));
-    productsPerOrder = Integer.valueOf(properties.getProperty(PRODUCTS_PER_ORDER_KEY,
-        String.valueOf(PRODUCTS_PER_ORDER_DEFAULT_VALUE)));
+    super(outputDirectory, isRunPhase, properties);
 
     fileWriterMap = new HashMap<>();
   }
@@ -157,7 +144,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
       currentOrder = new Node("Order");
       graph.addNode(currentOrder);
       graph.addEdge(new Edge("have", orders, currentOrder));
-      productPerOrderCounter = productsPerOrder;
+      productPerOrderCounter = getProductsPerOrder();
     } else if (shouldCreateProduct) {
       product = new Node("Product");
       graph.addNode(product);
@@ -175,7 +162,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
       graph.addNode(tests);
       graph.addEdge(new Edge("tested", product, tests));
       shouldCreateTests = false;
-    } else if (testCounter < testParameterCount) {
+    } else if (testCounter < getTestParameterCount()) {
       Node testParameterNode = new Node("TestParameterNr:" + testCounter);
       graph.addNode(testParameterNode);
       graph.addEdge(new Edge("include", tests, testParameterNode));
@@ -184,6 +171,10 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
     if (isTestingFinished()) {
       resetProductParameters();
+    }
+
+    if (isOnlyCreateNodes()) {
+      graph.getEdges().clear();
     }
 
     return graph;
@@ -198,7 +189,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   private boolean isTestingFinished() {
-    return testCounter == testParameterCount && !shouldCreateProduct && !shouldCreateDate && !shouldCreateTests;
+    return testCounter == getTestParameterCount() && !shouldCreateProduct && !shouldCreateDate && !shouldCreateTests;
   }
 
   private void insert(File file, Map<String, ByteIterator> values) throws IOException {

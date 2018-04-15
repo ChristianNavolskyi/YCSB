@@ -41,20 +41,24 @@ import static java.io.File.separatorChar;
  * You can change the directory with the parameter {@value DATA_SET_DIRECTORY_PROPERTY}.
  * <p>
  * Every node will have a size of 500 Bytes by default.
- * This can be changed via the {@value NODE_BYTE_SIZE_PROPERTY} parameter.
+ * This can be changed via the "fieldlength" parameter.
  * <p>
  * The recordCount property determines how many nodes will be inserted. The total amount of database inserts could
  * be higher due to edges being inserted.
  */
 public class GraphWorkload extends Workload {
 
+  public static final String ONLY_WORK_WITH_NODES_PROPERTY = "onlynodes";
+  public static final String ONLY_WORK_WITH_NODES_DEFAUL = "false";
+
   public static final String DATA_SET_DIRECTORY_PROPERTY = "datasetdirectory";
   private static final String DATA_SET_DIRECTORY_DEFAULT = new File(System.getProperty("user.dir"),
       "benchmarkingData").getAbsolutePath();
 
-  private static final String NODE_BYTE_SIZE_PROPERTY = "nodebytesize";
   private static final String NODE_BYTE_SIZE_DEFAULT = "500";
+
   private static int nodeByteSize = Integer.parseInt(NODE_BYTE_SIZE_DEFAULT);
+  private static boolean onlyNodesInTransactions;
 
   private int maxScanLength;
   private GraphDataGenerator graphDataGenerator;
@@ -62,7 +66,7 @@ public class GraphWorkload extends Workload {
   private RandomGraphComponentGenerator randomGraphComponentGenerator;
 
   /**
-   * @return the value set via the {@value NODE_BYTE_SIZE_PROPERTY} property. The default value is {@value
+   * @return the value set via the "fieldlength" property. The default value is {@value
    * NODE_BYTE_SIZE_DEFAULT}.
    */
   public static int getNodeByteSize() {
@@ -89,7 +93,9 @@ public class GraphWorkload extends Workload {
   public void init(Properties properties) throws WorkloadException {
     super.init(properties);
 
-    nodeByteSize = Integer.parseInt(properties.getProperty(NODE_BYTE_SIZE_PROPERTY, NODE_BYTE_SIZE_DEFAULT));
+    nodeByteSize = Integer.parseInt(properties.getProperty(CoreWorkload.FIELD_LENGTH_PROPERTY, NODE_BYTE_SIZE_DEFAULT));
+    onlyNodesInTransactions = Boolean.parseBoolean(properties.getProperty(ONLY_WORK_WITH_NODES_PROPERTY,
+        ONLY_WORK_WITH_NODES_DEFAUL));
     maxScanLength = Integer.parseInt(properties.getProperty(MAX_SCAN_LENGTH_PROPERTY,
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 
@@ -159,7 +165,13 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionRead(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
+    GraphComponent graphComponent;
+
+    if (onlyNodesInTransactions) {
+      graphComponent = randomGraphComponentGenerator.chooseRandomNode();
+    } else {
+      graphComponent = randomGraphComponentGenerator.nextValue();
+    }
 
     Map<String, ByteIterator> map = new HashMap<>();
 
@@ -173,7 +185,13 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionUpdate(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
+    GraphComponent graphComponent;
+
+    if (onlyNodesInTransactions) {
+      graphComponent = randomGraphComponentGenerator.chooseRandomNode();
+    } else {
+      graphComponent = randomGraphComponentGenerator.nextValue();
+    }
 
     if (graphComponent != null) {
       db.update(graphComponent.getComponentTypeIdentifier(),
@@ -183,7 +201,13 @@ public class GraphWorkload extends Workload {
   }
 
   private void doTransactionScan(DB db) {
-    GraphComponent graphComponent = randomGraphComponentGenerator.nextValue();
+    GraphComponent graphComponent;
+
+    if (onlyNodesInTransactions) {
+      graphComponent = randomGraphComponentGenerator.chooseRandomNode();
+    } else {
+      graphComponent = randomGraphComponentGenerator.nextValue();
+    }
 
     Vector<HashMap<String, ByteIterator>> hashMaps = new Vector<>();
 
