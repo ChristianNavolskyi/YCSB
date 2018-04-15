@@ -105,6 +105,8 @@ function progress()
     PARAM_PROGRESS=$1;
     PARAM_PHASE=$2;
 
+    echo ${PARAM_PROGRESS} ${PARAM_PHASE}
+
     if [ $CURRENT_PROGRESS -le 0 -a $PARAM_PROGRESS -ge 0 ]    ; then echo -ne "[..........................] (0%)  $PARAM_PHASE \033[0K\r" ; fi;
     if [ $CURRENT_PROGRESS -le 5 -a $PARAM_PROGRESS -ge 5 ]    ; then echo -ne "[#.........................] (5%)  $PARAM_PHASE \033[0K\r" ; fi;
     if [ $CURRENT_PROGRESS -le 10 -a $PARAM_PROGRESS -ge 10 ]  ; then echo -ne "[###.......................] (10%) $PARAM_PHASE \033[0K\r" ; fi;
@@ -252,6 +254,11 @@ done
 # Execute benchmark
 currentRun=100
 numOfTotalBenchmarkRuns=$(( ${#databases[@]} * ${#runTypes[@]} * ${#workloadFiles[@]} * ${times} ))
+sizeFile=${outputFolder}/databaseSizes.txt
+if [ -e ${sizeFile} ]; then
+    rm ${sizeFile}
+fi
+touch ${sizeFile}
 echo "Running Benchmarks"
 for database in ${databases[*]}; do
     for workload in ${workloadFiles[*]}; do
@@ -264,7 +271,9 @@ for database in ${databases[*]}; do
                 measurementsFolder="$outputFolder/$database/$(basename ${workload})-$runType-$i"
                 clearFolder ${measurementsFolder}
 
-                progress $(( currentRun / numOfTotalBenchmarkRuns )) "$database - $(basename ${workload}) - $i/$times - $runType"
+                currentRunName="$database - $(basename ${workload}) - $i/$times - $runType"
+
+                progress $(( currentRun / numOfTotalBenchmarkRuns )) ${currentRunName}
 
                 ./ycsb.sh ${runType} ${database} -P ${workload} -s -p datasetdirectory=${dataSetFolder} \
                 ${parameterString} \
@@ -275,6 +284,8 @@ for database in ${databases[*]}; do
                 -p hdrhistogram.fileoutput=true \
                 -p hdrhistogram.output.path=${measurementsFolder}/ \
                 -p exportfile=${measurementsFolder}/measure &> /dev/null
+
+                echo $(du -sh ${databaseFolder}) ${currentRunName} >> ${sizeFile}
 
                 currentRun=$(( $currentRun + 100 ))
             done
