@@ -105,8 +105,6 @@ function progress()
     PARAM_PROGRESS=$1;
     PARAM_PHASE=$2;
 
-    echo ${PARAM_PROGRESS} ${PARAM_PHASE}
-
     if [ $CURRENT_PROGRESS -le 0 -a $PARAM_PROGRESS -ge 0 ]    ; then echo -ne "[..........................] (0%)  $PARAM_PHASE \033[0K\r" ; fi;
     if [ $CURRENT_PROGRESS -le 5 -a $PARAM_PROGRESS -ge 5 ]    ; then echo -ne "[#.........................] (5%)  $PARAM_PHASE \033[0K\r" ; fi;
     if [ $CURRENT_PROGRESS -le 10 -a $PARAM_PROGRESS -ge 10 ]  ; then echo -ne "[###.......................] (10%) $PARAM_PHASE \033[0K\r" ; fi;
