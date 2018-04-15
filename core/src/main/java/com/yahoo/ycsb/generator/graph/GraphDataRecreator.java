@@ -168,40 +168,41 @@ public class GraphDataRecreator extends GraphDataGenerator {
     return Edge.recreateEdge(values, nodeMap);
   }
 
+  // assert Edge::getStartNode::getId < Edge::getEndNode::getId. Only edges from smaller ids to larger ids.
   private List<Graph> createSingleGraphs(Map<Long, Edge> edgeMap, long lastNodeId) {
     List<Graph> result = new ArrayList<>();
 
     Node startNode;
     Node endNode;
-    Graph graph;
+    Graph graph = new Graph();
 
     for (Long id : new TreeMap<>(edgeMap).keySet()) {
       Edge edge = edgeMap.get(id);
-      graph = new Graph();
 
       startNode = edge.getStartNode();
+      endNode = edge.getEndNode();
 
       if (startNode.getId() > lastNodeId) {
         graph.addNode(startNode);
         lastNodeId = startNode.getId();
-        result.add(graph);
-        graph = new Graph();
       }
-
-      endNode = edge.getEndNode();
 
       if (endNode.getId() > lastNodeId) {
-        graph.addNode(endNode);
-        graph.addEdge(edge);
-        lastNodeId = endNode.getId();
-
-        if (edgeMap.containsKey(id + 1) && edgeMap.get(id + 1).getEndNode().getId() <= lastNodeId) {
-          Edge nextEdge = edgeMap.get(id + 1);
-          graph.addEdge(nextEdge);
+        if (!graph.getNodes().isEmpty()) {
+          result.add(graph);
+          graph = new Graph();
         }
 
-        result.add(graph);
+        graph.addNode(endNode);
+        lastNodeId = endNode.getId();
       }
+
+      graph.addEdge(edge);
+    }
+
+    if (!result.contains(graph)) {
+      // add last graph if not already added
+      result.add(graph);
     }
 
     return result;
