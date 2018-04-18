@@ -45,21 +45,16 @@ public class Node extends GraphComponent {
   private StringByteIterator value = new StringByteIterator("");
 
   Node(String label) {
-    super(label, getAndIncrementIdCounter());
+    super(getAndIncrementIdCounter(), label);
   }
 
-  private Node(String label, long id) {
-    super(label, id);
+  Node(long id, String label, String value) {
+    super(id, label);
+    this.value = new StringByteIterator(value);
   }
 
-  static Node recreateNode(Map<String, ByteIterator> values) {
-    int id = Integer.valueOf(values.get(ID_IDENTIFIER).toString());
-    String label = values.get(LABEL_IDENTIFIER).toString();
-
-    Node node = new Node(label, id);
-    node.value = (StringByteIterator) values.get(VALUE_IDENTIFIER);
-
-    return node;
+  private Node(long id, String label) {
+    super(id, label);
   }
 
   /**
@@ -72,6 +67,10 @@ public class Node extends GraphComponent {
 
   private static synchronized long getAndIncrementIdCounter() {
     return nodeIdCount++;
+  }
+
+  public StringByteIterator getValue() {
+    return value;
   }
 
   @Override
@@ -107,5 +106,9 @@ public class Node extends GraphComponent {
     }
 
     return new StringByteIterator(randomText.toString());
+  }
+
+  Node copyNode() {
+    return new Node(this.getId(), this.getLabel());
   }
 }

@@ -42,20 +42,20 @@ public class Edge extends GraphComponent {
     EDGE_FIELDS_SET.add(END_IDENTIFIER);
   }
 
-  private Node startNode;
-  private Node endNode;
+  private long startNodeId;
+  private long endNodeId;
 
-  Edge(String label, Node startNode, Node endNode) {
-    super(label, getAndIncrementIdCounter());
+  Edge(String label, long startNodeId, long endNodeId) {
+    super(getAndIncrementIdCounter(), label);
 
-    this.startNode = startNode;
-    this.endNode = endNode;
+    this.startNodeId = startNodeId;
+    this.endNodeId = endNodeId;
   }
 
-  private Edge(long id, String label, Node startNode, Node endNode) {
-    super(label, id);
-    this.startNode = startNode;
-    this.endNode = endNode;
+  Edge(long id, String label, long startNodeId, long endNodeId) {
+    super(id, label);
+    this.startNodeId = startNodeId;
+    this.endNodeId = endNodeId;
   }
 
   /**
@@ -66,24 +66,12 @@ public class Edge extends GraphComponent {
     return edgeIdCount;
   }
 
-  static Edge recreateEdge(Map<String, ByteIterator> values, Map<Long, Node> nodeMap) {
-    long id = Long.valueOf(values.get(ID_IDENTIFIER).toString());
-    String label = values.get(LABEL_IDENTIFIER).toString();
-    long startNodeId = Integer.valueOf(values.get(START_IDENTIFIER).toString());
-    long endNodeId = Integer.valueOf(values.get(END_IDENTIFIER).toString());
-
-    Node startNode = nodeMap.get(startNodeId);
-    Node endNode = nodeMap.get(endNodeId);
-
-    if (startNode != null && endNode != null) {
-      return new Edge(id, label, startNode, endNode);
-    }
-
-    return null;
-  }
-
   private static synchronized long getAndIncrementIdCounter() {
     return edgeIdCount++;
+  }
+
+  Edge copyEdge() {
+    return new Edge(this.getId(), this.getLabel(), this.startNodeId, this.endNodeId);
   }
 
   @Override
@@ -97,8 +85,8 @@ public class Edge extends GraphComponent {
 
     values.put(ID_IDENTIFIER, new StringByteIterator(String.valueOf(this.getId())));
     values.put(LABEL_IDENTIFIER, new StringByteIterator(this.getLabel()));
-    values.put(START_IDENTIFIER, new StringByteIterator(String.valueOf(startNode.getId())));
-    values.put(END_IDENTIFIER, new StringByteIterator(String.valueOf(endNode.getId())));
+    values.put(START_IDENTIFIER, new StringByteIterator(String.valueOf(startNodeId)));
+    values.put(END_IDENTIFIER, new StringByteIterator(String.valueOf(endNodeId)));
     return values;
   }
 
@@ -107,11 +95,11 @@ public class Edge extends GraphComponent {
     return EDGE_FIELDS_SET;
   }
 
-  public Node getStartNode() {
-    return startNode;
+  long getStartNodeId() {
+    return startNodeId;
   }
 
-  public Node getEndNode() {
-    return endNode;
+  long getEndNodeId() {
+    return endNodeId;
   }
 }

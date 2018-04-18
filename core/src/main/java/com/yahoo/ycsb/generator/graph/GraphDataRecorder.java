@@ -17,13 +17,13 @@
 
 package com.yahoo.ycsb.generator.graph;
 
-import com.yahoo.ycsb.ByteIterator;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Generates graph data with an "industrial" structure.
@@ -38,11 +38,11 @@ import java.util.*;
  * <p>
  * ORDERS have single ORDERs under them.
  * <p>
- * A ORDER includes a PRODUCT (or multiple). - Set by the {@value PRODUCTS_PER_ORDER_KEY} parameter.
+ * A ORDER includes a PRODUCT (or multiple). - Set by the {@value PRODUCTS_PER_ORDER_PROPERTY} parameter.
  * <p>
  * A PRODUCT is produced on a DATE and have TESTS run on them.
  * <p>
- * TESTS have a TESTPARAMETER (or multiple). - Set by the {@value TEST_PARAMETER_COUNT_KEY} parameter.
+ * TESTS have a TESTPARAMETER (or multiple). - Set by the {@value TEST_PARAMETER_COUNT_PROPERTY} parameter.
  */
 public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
@@ -50,14 +50,18 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   private Node orders;
   private Node machine;
   private Node design;
-  private Node product;
-  private Node tests;
   private Node currentOrder;
+  private Node product;
+  private Node component;
+  private Node tests;
 
-  private int productPerOrderCounter = 0;
   private boolean shouldCreateProduct = true;
   private boolean shouldCreateDate = true;
   private boolean shouldCreateTests = true;
+  private boolean shouldCreateComponent = true;
+  private int productsInOrderCounter = 0;
+  private int productCounter = 0;
+  private int componentCounter = 0;
   private int testCounter = 0;
 
   private Map<String, FileWriter> fileWriterMap;
@@ -69,14 +73,8 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   @Override
-  List<Graph> getGraphs(int numberOfGraphs) {
-    List<Graph> result = new ArrayList<>();
-
-    for (int i = 0; i <= numberOfGraphs; i++) {
-      result.add(createGraph());
-    }
-
-    return result;
+  Graph getNextLoadGraph() {
+    return createGraph();
   }
 
   @Override
@@ -113,13 +111,8 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
   }
 
   private void saveGraphContentsAndFillValueOfNodes(Graph graph) throws IOException {
-    for (Node node : graph.getNodes()) {
-      insert(getNodeFile(), node.getHashMap());
-    }
-
-    for (Edge edge : graph.getEdges()) {
-      insert(getEdgeFile(), edge.getHashMap());
-    }
+    graph.getNodes().forEach(Node::getHashMap);
+    insert(getGraphFile(), graph);
   }
 
   private Graph createGraph() {
@@ -131,46 +124,57 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     } else if (machine == null) {
       this.machine = new Node("Machine");
       graph.addNode(this.machine);
-      graph.addEdge(new Edge("owns", factory, machine));
+      graph.addEdge(new Edge("owns", factory.getId(), machine.getId()));
     } else if (orders == null) {
       this.orders = new Node("Orders");
       graph.addNode(this.orders);
-      graph.addEdge(new Edge("has", factory, orders));
+      graph.addEdge(new Edge("has", factory.getId(), orders.getId()));
     } else if (design == null) {
       this.design = new Node("Design");
       graph.addNode(this.design);
-      graph.addEdge(new Edge("builds", machine, design));
-    } else if (productPerOrderCounter == 0) {
+      graph.addEdge(new Edge("builds", machine.getId(), design.getId()));
+    } else if (productsInOrderCounter == 0) {
       currentOrder = new Node("Order");
       graph.addNode(currentOrder);
-      graph.addEdge(new Edge("have", orders, currentOrder));
-      productPerOrderCounter = getProductsPerOrder();
+      graph.addEdge(new Edge("have", orders.getId(), currentOrder.getId()));
+      productsInOrderCounter = getProductsPerOrder();
     } else if (shouldCreateProduct) {
       product = new Node("Product");
       graph.addNode(product);
-      graph.addEdge(new Edge("ordered", currentOrder, product));
-      graph.addEdge(new Edge("templateFor", design, product));
-      graph.addEdge(new Edge("produced", machine, product));
+      graph.addEdge(new Edge("ordered", currentOrder.getId(), product.getId()));
+      graph.addEdge(new Edge("templateFor", design.getId(), product.getId()));
+      graph.addEdge(new Edge("produced", machine.getId(), product.getId()));
+      productCounter++;
       shouldCreateProduct = false;
     } else if (shouldCreateDate) {
       Node date = new Node("Date");
       graph.addNode(date);
-      graph.addEdge(new Edge("producedAt", product, date));
+      graph.addEdge(new Edge("producedAt", product.getId(), date.getId()));
       shouldCreateDate = false;
+    } else if (shouldCreateComponent) {
+      component = new Node("Component");
+      graph.addNode(component);
+      graph.addEdge(new Edge("madeOf", product.getId(), component.getId()));
+      componentCounter++;
+      shouldCreateComponent = false;
     } else if (shouldCreateTests) {
       tests = new Node("Tests");
       graph.addNode(tests);
-      graph.addEdge(new Edge("tested", product, tests));
+      graph.addEdge(new Edge("undergoes", component.getId(), tests.getId()));
       shouldCreateTests = false;
     } else if (testCounter < getTestParameterCount()) {
       Node testParameterNode = new Node("TestParameterNr:" + testCounter);
       graph.addNode(testParameterNode);
-      graph.addEdge(new Edge("include", tests, testParameterNode));
+      graph.addEdge(new Edge("include", tests.getId(), testParameterNode.getId()));
       testCounter++;
     }
 
-    if (isTestingFinished()) {
-      resetProductParameters();
+    if (areAllProductsReadyForOrder()) {
+      resetEverythingForNewOrder();
+    } else if (areAllComponentsAddedToProduct()) {
+      resetEverythingForNewProduct();
+    } else if (isTestingFinished()) {
+      resetEverythingForNewComponent();
     }
 
     if (isOnlyCreateNodes()) {
@@ -180,20 +184,39 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     return graph;
   }
 
-  private void resetProductParameters() {
-    shouldCreateProduct = true;
-    shouldCreateDate = true;
-    shouldCreateTests = true;
-    testCounter = 0;
-    productPerOrderCounter--;
+  private boolean areAllProductsReadyForOrder() {
+    return productCounter == getProductsPerOrder() && areAllComponentsAddedToProduct() && isTestingFinished();
+  }
+
+  private boolean areAllComponentsAddedToProduct() {
+    return componentCounter == getComponentsPerProduct() && isTestingFinished();
   }
 
   private boolean isTestingFinished() {
-    return testCounter == getTestParameterCount() && !shouldCreateProduct && !shouldCreateDate && !shouldCreateTests;
+    return testCounter == getTestParameterCount();
   }
 
-  private void insert(File file, Map<String, ByteIterator> values) throws IOException {
-    String output = getGson().toJson(values, getValueType());
+  private void resetEverythingForNewOrder() {
+    productsInOrderCounter = 0;
+    productCounter = 0;
+    resetEverythingForNewProduct();
+  }
+
+  private void resetEverythingForNewProduct() {
+    shouldCreateProduct = true;
+    shouldCreateDate = true;
+    componentCounter = 0;
+    resetEverythingForNewComponent();
+  }
+
+  private void resetEverythingForNewComponent() {
+    shouldCreateComponent = true;
+    shouldCreateTests = true;
+    testCounter = 0;
+  }
+
+  private void insert(File file, Graph graph) throws IOException {
+    String output = getGson().toJson(graph, getValueType());
     FileWriter fileWriter = getFileWriter(file);
 
     writeToFile(output, fileWriter);

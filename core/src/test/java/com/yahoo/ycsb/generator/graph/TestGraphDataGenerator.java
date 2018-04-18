@@ -160,8 +160,8 @@ public class TestGraphDataGenerator {
 
         assertEquals(originalEdge.getId(), recreatedEdge.getId());
         assertEquals(originalEdge.getLabel(), recreatedEdge.getLabel());
-        assertEquals(originalEdge.getStartNode().getId(), recreatedEdge.getStartNode().getId());
-        assertEquals(originalEdge.getEndNode().getId(), recreatedEdge.getEndNode().getId());
+        assertEquals(originalEdge.getStartNodeId(), recreatedEdge.getStartNodeId());
+        assertEquals(originalEdge.getEndNodeId(), recreatedEdge.getEndNodeId());
       }
     }
   }
