@@ -252,7 +252,7 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
       num = lineNumberReader.skip(Long.MAX_VALUE);
     } while (num > 0);
 
-    return lineNumberReader.getLineNumber() + 1;
+    return lineNumberReader.getLineNumber();
   }
 
   /**
