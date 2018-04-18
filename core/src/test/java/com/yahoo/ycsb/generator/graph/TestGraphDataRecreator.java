@@ -169,7 +169,7 @@ public class TestGraphDataRecreator {
     return new GraphDataRecreator(directory, true, new Properties());
   }
 
-  private void checkCorrectGraphStructure(GraphDataRecreator graphDataRecreator, List<Graph> graphList, int numberOfNodes) {
+  private void checkCorrectGraphStructure(GraphDataRecreator graphDataRecreator, List<Graph> graphList, int numberOfNodes) throws IOException {
     for (int i = 0; i < numberOfNodes; i++) {
       Graph graph = graphDataRecreator.createNextValue();
       graphList.add(graph);

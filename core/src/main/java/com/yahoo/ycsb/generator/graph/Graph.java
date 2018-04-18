@@ -24,6 +24,9 @@ import java.util.List;
  * Graph for the graph workload.
  */
 public class Graph {
+
+  public static final String GRAPH_IDENTIFIER = "graph";
+
   private List<Node> nodes;
   private List<Edge> edges;
 

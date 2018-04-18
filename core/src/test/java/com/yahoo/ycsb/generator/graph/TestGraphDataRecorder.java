@@ -90,8 +90,7 @@ public class TestGraphDataRecorder {
     Set<File> list = new HashSet<>(Arrays.asList(Objects.requireNonNull(directory.listFiles())));
 
     assertEquals(2, list.size());
-    assertTrue(list.contains(graphDataRecorder.getNodeFile()));
-    assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
+    assertTrue(list.contains(graphDataRecorder.getGraphFile()));
   }
 
   @Test
@@ -101,8 +100,7 @@ public class TestGraphDataRecorder {
     Set<File> list = new HashSet<>(Arrays.asList(Objects.requireNonNull(directory.listFiles())));
 
     assertEquals(2, list.size());
-    assertTrue(list.contains(graphDataRecorder.getNodeFile()));
-    assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
+    assertTrue(list.contains(graphDataRecorder.getGraphFile()));
     assertEquals(0, Node.getNodeCount());
     assertEquals(0, Edge.getEdgeCount());
   }
@@ -124,8 +122,7 @@ public class TestGraphDataRecorder {
     Set<File> list = new HashSet<>(Arrays.asList(Objects.requireNonNull(directory.listFiles())));
 
     assertEquals(4, list.size());
-    assertTrue(list.contains(graphDataRecorder.getNodeFile()));
-    assertTrue(list.contains(graphDataRecorder.getEdgeFile()));
+    assertTrue(list.contains(graphDataRecorder.getGraphFile()));
     assertEquals(++nodeId, Node.getNodeCount());
   }
 
@@ -137,8 +134,8 @@ public class TestGraphDataRecorder {
       graphDataRecorder.createNextValue();
     }
 
-    List<String> strings = Files.readAllLines(graphDataRecorder.getNodeFile().toPath(),
-        Charset.forName(new FileReader(graphDataRecorder.getNodeFile()).getEncoding()));
+    List<String> strings = Files.readAllLines(graphDataRecorder.getGraphFile().toPath(),
+        Charset.forName(new FileReader(graphDataRecorder.getGraphFile()).getEncoding()));
 
     assertEquals(graphsToCreate, strings.size());
   }
@@ -151,8 +148,8 @@ public class TestGraphDataRecorder {
       graphDataRecorder.createNextValue();
     }
 
-    List<String> strings = Files.readAllLines(graphDataRecorder.getNodeFile().toPath(),
-        Charset.forName(new FileReader(graphDataRecorder.getNodeFile()).getEncoding()));
+    List<String> strings = Files.readAllLines(graphDataRecorder.getGraphFile().toPath(),
+        Charset.forName(new FileReader(graphDataRecorder.getGraphFile()).getEncoding()));
 
     assertEquals(graphsToCreate, strings.size());
   }

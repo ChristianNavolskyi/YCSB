@@ -31,7 +31,7 @@ public abstract class GraphComponent {
   private final long id;
   private final String label;
 
-  GraphComponent(String label, long id) {
+  GraphComponent(long id, String label) {
     this.id = id;
     this.label = label;
   }
