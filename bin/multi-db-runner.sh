@@ -207,7 +207,7 @@ Data set folder:    $dataSetBaseFolder
 # Prepare the benchmark runs
 parameterString=""
 for parameter in ${parameters[*]}; do
-    parameterString+="-p $parameter"
+    parameterString+="-p $parameter "
 done
 
 databaseFolder="${outputFolder}/database"
@@ -233,7 +233,7 @@ for workload in ${workloadFiles[*]}; do
         mkdir ${dataSetFolder}
 
         for runType in ${runTypes[*]}; do
-            progress $(( current / numOfDataSetCreations )) "$workload $runType"
+            progress $(( current / numOfDataSetCreations )) "$(basename ${workload}) $runType"
             ./ycsb.sh ${runType} basic -P ${workload} -p datasetdirectory=${dataSetFolder} &> /dev/null
             current=$(( $current + 100 ))
         done
