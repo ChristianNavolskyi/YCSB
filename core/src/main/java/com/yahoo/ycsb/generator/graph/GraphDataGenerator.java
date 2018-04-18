@@ -246,8 +246,11 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
   private int getNumberOfGraphs(File file) throws IOException {
     LineNumberReader lineNumberReader = new LineNumberReader(new FileReader(file));
 
-    while (lineNumberReader.skip(Long.MAX_VALUE) > 0) {
-    }
+    long num;
+
+    do {
+      num = lineNumberReader.skip(Long.MAX_VALUE);
+    } while (num > 0);
 
     return lineNumberReader.getLineNumber() + 1;
   }
