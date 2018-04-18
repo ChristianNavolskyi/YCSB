@@ -239,9 +239,8 @@ for workload in ${workloadFiles[*]}; do
         done
     else
         progress $(( current / numOfDataSetCreations )) "$workload already present"
+        current=$(( $current * ${#runTypes[*]} + 100 ))
     fi
-
-    current=$(( $current + 100 ))
 done
 progress $(( current / numOfDataSetCreations )) "Data sets created!"
 
