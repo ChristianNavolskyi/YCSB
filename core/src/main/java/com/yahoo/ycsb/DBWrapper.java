@@ -95,7 +95,11 @@ public class DBWrapper extends DB {
    */
   public void init() throws DBException {
     try (final TraceScope span = tracer.newScope(scopeStringInit)) {
+      long ist = measurements.getIntendedtartTimeNs();
+      long st = System.nanoTime();
       db.init();
+      long en = System.nanoTime();
+      measure("INITIALISE", Status.OK, ist, st, en);
 
       this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
           getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
