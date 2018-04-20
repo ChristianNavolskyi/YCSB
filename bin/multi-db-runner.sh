@@ -271,7 +271,7 @@ for workload in ${workloadFiles[*]}; do
             mkdir -p ${databaseFolder}
 
             for runType in ${runTypes[*]}; do
-                measurementsFolder="$outputFolder/$database/$(basename ${workload})-$runType-$i"
+                measurementsFolder="$outputFolder/$database/$(basename ${workload})/$runType/$i"
 
                 currentRunName="$database - $(basename ${workload}) - $i/$times - $runType"
                 progress $(( current / numOfTotalBenchmarkRuns )) "$currentRunName"
@@ -296,7 +296,7 @@ for workload in ${workloadFiles[*]}; do
                     progress $(( current / numOfTotalBenchmarkRuns )) "Processing histograms of $currentRunName"
 
                     for measurement in ${measurementsFolder}/*.hdr; do
-                        if [ ! -e "$measurement" ]; then
+                        if [ -e "$measurement" ]; then
                             filename=$(basename ${measurement})
 
                             $(${hdrProcessorPath} -i ${measurement} \
