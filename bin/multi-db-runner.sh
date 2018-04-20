@@ -287,7 +287,7 @@ for workload in ${workloadFiles[*]}; do
                     -p measurementtype=hdrhistogram \
                     -p hdrhistogram.fileoutput=true \
                     -p hdrhistogram.output.path=${measurementsFolder}/ \
-                    -p exportfile=${measurementsFolder}/measure &> /dev/null
+                    -p exportfile=${measurementsFolder}/measure &> ${measurementsFolder}/consoleOutput.txt
                 fi
 
                 current=$(( $current + 100 ))
