@@ -92,10 +92,6 @@ while getopts ':d:f:hl:o:p:s:t:w:' option; do
 done
 shift $((OPTIND - 1))
 
-function getDataSetFolderForWorkload() {
-    echo "${dataSetBaseFolder}/$(basename $1)"
-}
-
 CURRENT_PROGRESS=0
 function progress()
 {
@@ -169,6 +165,7 @@ for database in ${databases[@]}; do
     fi
 done
 
+
 # Check number of path options equals number of databases.
 if [[ ${databases[0]} != "basic" ]] && [ ${#databases[*]} -gt ${#folderOptions[*]} ]; then
     echo "Not all folder options supplied for all databases.
@@ -229,34 +226,17 @@ for pathOption in ${folderOptions[*]}; do
 done
 
 
-# Create data set
-current=0
-numOfDataSetCreations=$(( ${#runTypes[@]} * ${#workloadFiles[@]} ))
-for workload in ${workloadFiles[*]}; do
-    dataSetFolder=$(getDataSetFolderForWorkload ${workload})
-
-    if [ ! -d ${dataSetFolder} ]; then
-        mkdir ${dataSetFolder}
-
-        for runType in ${runTypes[*]}; do
-            progress $(( current / numOfDataSetCreations )) "$(basename ${workload}) $runType"
-            ./ycsb.sh ${runType} basic -P ${workload} -p datasetdirectory=${dataSetFolder} &> /dev/null
-            current=$(( $current + 100 ))
-        done
-    else
-        progress $(( current / numOfDataSetCreations )) "$workload already present"
-        current=$(( $current * ${#runTypes[*]} + 100 ))
-    fi
-done
-progress $(( current / numOfDataSetCreations )) "Data sets created!"
-
 # Execute benchmark
 current=0
 numOfTotalBenchmarkRuns=$(( ${#databases[@]} * ${#runTypes[@]} * ${#workloadFiles[@]} * ${times} ))
+
 if [ -n "$hdrProcessorPath" ] && [ -e "$hdrProcessorPath" ]; then
     numOfTotalBenchmarkRuns=$(( ${numOfTotalBenchmarkRuns} * 2 ))
 fi
+
+numOfTotalBenchmarkRuns=$(( ${numOfTotalBenchmarkRuns} + ${#runTypes[@]} * ${#workloadFiles[@]} ))
 sizeFile="${outputFolder}/databaseSizes.txt"
+
 if [ ! -e ${sizeFile} ]; then
     touch ${sizeFile}
 fi
@@ -264,9 +244,18 @@ fi
 echo "$(date)" >> ${sizeFile}
 
 for workload in ${workloadFiles[*]}; do
-    for database in ${databases[*]}; do
-        dataSetFolder=$(getDataSetFolderForWorkload ${workload})
+    dataSetFolder="${dataSetBaseFolder}/$(basename ${workload})"
 
+    # Create data set
+    mkdir -p ${dataSetFolder}
+    for runType in ${runTypes[*]}; do
+        progress $(( current / numOfTotalBenchmarkRuns )) "$(basename ${workload}) $runType"
+        ./ycsb.sh ${runType} basic -P ${workload} -p datasetdirectory=${dataSetFolder} &> /dev/null
+        current=$(( $current + 100 ))
+    done
+
+    # Run benchmark
+    for database in ${databases[*]}; do
         for i in $(seq 1 ${times}); do
             mkdir -p ${databaseFolder}
 
@@ -314,5 +303,7 @@ for workload in ${workloadFiles[*]}; do
             rm -r ${databaseFolder}
         done
     done
+
+    rm -r ${dataSetFolder}
 done
 progress $(( current / numOfTotalBenchmarkRuns )) "Done!"
