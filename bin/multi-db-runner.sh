@@ -300,7 +300,5 @@ for workload in ${workloadFiles[*]}; do
             rm -r ${databaseFolder}
         done
     done
-
-    rm -r ${dataSetFolder}
 done
 progress $(( current / numOfTotalBenchmarkRuns )) "Done!"
