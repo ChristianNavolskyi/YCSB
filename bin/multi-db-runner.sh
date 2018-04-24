@@ -297,7 +297,7 @@ for workload in ${workloadFiles[*]}; do
                 echo "$(du -sh ${databaseFolder}) $currentRunName" >> ${sizeFile}
             done
 
-            rm -r ${databaseFolder}
+            rm -rf ${databaseFolder}
         done
     done
 done
