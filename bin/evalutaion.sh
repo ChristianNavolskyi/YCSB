@@ -80,10 +80,14 @@ for workload in ${workloadFiles[*]}; do
 
               if [ ! -d ${filename} ]; then
                 resultsToAdd+="$(cat ${runFolder}/${filename} | grep StdD | cut -d , -f 2 | cut -d = -f 2 | tr ] ' ' | tr -d '[:space:]' | tr . ,);"
+              else
+                resultsToAdd+=";"
               fi
             else
               if [ -e ${runFolder}/measure ]; then
-                  resultsToAdd+="$(cat ${runFolder}/measure | grep -i \\[${firstPart}\\] | grep -i ${secondPart} | cut -d , -f 3 | tr -d '[:space:]' | tr . ,);"
+                resultsToAdd+="$(cat ${runFolder}/measure | grep -i \\[${firstPart}\\] | grep -i ${secondPart} | cut -d , -f 3 | tr -d '[:space:]' | tr . ,);"
+              else
+                resultsToAdd+=";"
               fi
             fi
           done
