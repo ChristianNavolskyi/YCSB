@@ -142,16 +142,15 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
   @Override
   public final Graph nextValue() {
-    Graph graph = new Graph();
     try {
-      graph = createNextValue();
+      lastValue = createNextValue();
     } catch (IOException e) {
       e.printStackTrace();
     }
 
-    storeGraphComponents(graph);
+    storeGraphComponents(lastValue);
 
-    return graph;
+    return lastValue;
   }
 
   @Override
@@ -213,10 +212,6 @@ public abstract class GraphDataGenerator extends StoringGenerator<Graph> {
 
   Graph getLastValue() {
     return lastValue;
-  }
-
-  void setLastValue(Graph graph) {
-    this.lastValue = graph;
   }
 
   private void storeGraphComponents(Graph graph) {

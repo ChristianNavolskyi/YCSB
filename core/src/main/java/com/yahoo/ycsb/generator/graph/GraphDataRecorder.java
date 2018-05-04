@@ -79,11 +79,11 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
 
   @Override
   Graph createNextValue() throws IOException {
-    setLastValue(createGraph());
+    Graph graph = createGraph();
 
-    saveGraphContentsAndFillValueOfNodes(getLastValue());
+    saveGraphContentsAndFillValueOfNodes(graph);
 
-    return getLastValue();
+    return graph;
   }
 
   @Override

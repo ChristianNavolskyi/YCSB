@@ -52,7 +52,7 @@ public class Edge extends GraphComponent {
     this.endNodeId = endNodeId;
   }
 
-  Edge(long id, String label, long startNodeId, long endNodeId) {
+  private Edge(long id, String label, long startNodeId, long endNodeId) {
     super(id, label);
     this.startNodeId = startNodeId;
     this.endNodeId = endNodeId;

@@ -48,11 +48,6 @@ public class Node extends GraphComponent {
     super(getAndIncrementIdCounter(), label);
   }
 
-  Node(long id, String label, String value) {
-    super(id, label);
-    this.value = new StringByteIterator(value);
-  }
-
   private Node(long id, String label) {
     super(id, label);
   }

@@ -24,6 +24,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.Iterator;
 import java.util.ListIterator;
 
 /**
@@ -32,9 +33,9 @@ import java.util.ListIterator;
  */
 public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator {
 
-  private ListIterator<String> nodeIterator;
-  private ListIterator<String> edgeIterator;
-  private ListIterator<String> componentIterator;
+  private Iterator<String> nodeIterator;
+  private Iterator<String> edgeIterator;
+  private Iterator<String> componentIterator;
 
 
   RandomGraphComponentRecreator(String inputDirectory,
@@ -78,12 +79,12 @@ public class RandomGraphComponentRecreator extends RandomGraphComponentGenerator
     return RandomComponent.getRandomComponent(getNextValue(componentIterator));
   }
 
-  private ListIterator<String> getIterator(File file) throws IOException {
+  private Iterator<String> getIterator(File file) throws IOException {
     return Files.readAllLines(file.toPath(), Charset.forName(new FileReader(file)
-        .getEncoding())).listIterator();
+        .getEncoding())).iterator();
   }
 
-  private String getNextValue(ListIterator<String> iterator) {
+  private String getNextValue(Iterator<String> iterator) {
     if (iterator.hasNext()) {
       return iterator.next();
     }

@@ -57,11 +57,7 @@ public class GraphDataRecreator extends GraphDataGenerator {
 
   @Override
   Graph createNextValue() throws IOException {
-    Graph graph = getNextGraphFromReader(bufferedReader);
-
-    setLastValue(graph);
-
-    return getLastValue();
+    return getNextGraphFromReader(bufferedReader);
   }
 
   @Override
