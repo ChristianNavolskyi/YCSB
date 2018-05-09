@@ -149,7 +149,7 @@ public class GraphDataRecorder extends GraphDataGenerator implements Closeable {
     } else if (shouldCreateDate) {
       Node date = new Node("Date");
       graph.addNode(date);
-      graph.addEdge(new Edge("producedAt", product.getId(), date.getId()));
+      graph.addEdge(new Edge("producedOn", product.getId(), date.getId()));
       shouldCreateDate = false;
     } else if (shouldCreateComponent) {
       component = new Node("Component");
