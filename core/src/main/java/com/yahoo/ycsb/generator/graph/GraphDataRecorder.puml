@@ -1,0 +1,57 @@
+@startuml
+(*)  --> "createGraph()"
+if "Factory present" then
+    --> [No] "create Factory"
+    --> "Reset parameters if needed"
+else
+    --> [Yes] if "Machine present" then
+        --> [No] "create Machine with edges"
+        --> "Reset parameters if needed"
+    else
+        --> [Yes] if "Orders present" then
+            --> [No] "create Orders with edges"
+            --> "Reset parameters if needed"
+        else
+            --> [Yes] if "Design present" then
+                --> [No] "create Design with edges"
+                --> "Reset parameters if needed"
+            else
+                --> [Yes] if "Order fulfilled" then
+                    --> [Yes] "create new Order with edges"
+                    --> "Reset parameters if needed"
+                else
+                    --> [No] if "Product finished" then
+                        --> [Yes] "create Product with edges"
+                        --> "Reset parameters if needed"
+                    else
+                        --> [No] if "Date added" then
+                            --> [No] "create Date with edges"
+                            --> "Reset parameters if needed"
+                        else
+                            --> [Yes] if "Component tested" then
+                                --> [Yes] "create Component with edges"
+                                --> "Reset parameters if needed"
+                            else
+                                --> [No] if "Tests added" then
+                                    --> [No] "create Tests with edges"
+                                    --> "Reset parameters if needed"
+                                else
+                                    --> [Yes] if "TestParameter finished" then
+                                        --> [Yes] "create TestParameter with edges"
+
+--> "Reset parameters if needed"
+
+if "Order is finished" then
+    --> [Yes] "Reset everything for new Order"
+    --> (*)
+else
+    --> [No] if "Product is finished" then
+        --> [Yes] "Reset everything for new Product"
+        --> (*)
+    else
+        --> [No] if "All TestParameters finished" then
+            --> [Yes] "Reset everything for new Component"
+            --> (*)
+            else
+                --> [No] (*)
+@enduml

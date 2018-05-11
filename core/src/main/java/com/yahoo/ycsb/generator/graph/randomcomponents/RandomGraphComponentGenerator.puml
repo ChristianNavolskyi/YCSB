@@ -1,0 +1,10 @@
+@startuml
+(*)  --> [nextValue()] "randomNodeOrEdge"
+if ""
+--> [Node] "pickRandomNode"
+else
+--> [Edge] "pickRandomEdge"
+
+-->(*)
+"pickRandomNode" --> (*)
+@enduml
