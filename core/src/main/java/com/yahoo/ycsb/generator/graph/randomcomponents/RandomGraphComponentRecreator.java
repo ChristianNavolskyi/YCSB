@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Iterator;
-import java.util.ListIterator;
 
 /**
  * Class to recreate the saved value produced by a {@link RandomGraphComponentRecorder}, stored in a file in the
