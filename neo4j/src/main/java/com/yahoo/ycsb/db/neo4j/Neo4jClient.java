@@ -41,7 +41,7 @@ public class Neo4jClient extends DB {
   /**
    * Path used to create the database directory.
    */
-  static final String BASE_PATH_PROPERTY = "neo4j.path";
+  static final String BASE_PATH_PROPERTY = "neo4j.db";
   static final String USE_INDEX_PROPERTY = "neo4j.index";
 
   private static final String BASE_PATH_DEFAULT = "neo4j.db";

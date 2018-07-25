@@ -25,6 +25,7 @@ import com.yahoo.ycsb.generator.graph.Node;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SparkseeClient extends DB {
 
-  static final String SPARKSEE_DATABASE_PATH_PROPERTY = "sparksee.path";
+  static final String SPARKSEE_DATABASE_PATH_PROPERTY = "sparksee.db";
   private static final String SPARKSEE_DATABASE_PATH_DEFAULT = "sparkseeDB.gdb";
   private static final String SPARKSEE_LOG_LEVEL_PROPERTY = "sparksee.logLevel";
   private static final String USE_INDEX_PROPERTY = "sparksee.index";
@@ -47,7 +48,6 @@ public class SparkseeClient extends DB {
   private static Database database;
   private static Integer nodeIdAttribute = null;
   private static Integer edgeIdAttribute = null;
-  private boolean useIndex;
 
   @Override
   public void init() throws DBException {
@@ -59,9 +59,13 @@ public class SparkseeClient extends DB {
       if (!initialised) {
         Properties properties = getProperties();
 
-        String path = properties.getProperty(SPARKSEE_DATABASE_PATH_PROPERTY, SPARKSEE_DATABASE_PATH_DEFAULT);
         String logLevel = properties.getProperty(SPARKSEE_LOG_LEVEL_PROPERTY, SPARKSEE_LOG_LEVEL_DEFAULT);
-        useIndex = Boolean.parseBoolean(properties.getProperty(USE_INDEX_PROPERTY, USE_INDEX_DEFAULT));
+        boolean useIndex = Boolean.parseBoolean(properties.getProperty(USE_INDEX_PROPERTY, USE_INDEX_DEFAULT));
+        String path = properties.getProperty(SPARKSEE_DATABASE_PATH_PROPERTY, SPARKSEE_DATABASE_PATH_DEFAULT);
+
+        if (path.endsWith(".gdb")) {
+          path = path.split("\\.gdb")[0];
+        }
 
         SparkseeConfig sparkseeConfig = new SparkseeConfig();
         setLogLevel(sparkseeConfig, logLevel);
@@ -69,12 +73,18 @@ public class SparkseeClient extends DB {
         sparksee = new Sparksee(sparkseeConfig);
 
         try {
-          if (new File(path).exists()) {
+          File pathFile = new File(path);
+          if (pathFile.exists() && pathFile.isFile()) {
             database = sparksee.open(path, false);
           } else {
-            database = sparksee.create(path, "SparkseeDB");
+            File databaseFile = new File(pathFile, SPARKSEE_DATABASE_PATH_DEFAULT);
+            if ((pathFile.mkdirs() || pathFile.exists()) && (databaseFile.createNewFile() || databaseFile.exists())) {
+              database = sparksee.create(databaseFile.getAbsolutePath(), "SparkseeDB");
+            } else {
+              throw new FileNotFoundException("Could not create database directory.");
+            }
           }
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
           e.printStackTrace();
         }
 

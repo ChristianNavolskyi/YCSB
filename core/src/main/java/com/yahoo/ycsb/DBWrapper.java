@@ -17,6 +17,7 @@
 
 package com.yahoo.ycsb;
 
+import java.util.Map;
 import com.yahoo.ycsb.measurements.Measurements;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
@@ -28,12 +29,18 @@ import java.util.*;
  * Also reports latency separately between OK and failed operations.
  */
 public class DBWrapper extends DB {
-  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY = "reportlatencyforeacherror";
-  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT = "false";
-  private static final String LATENCY_TRACKED_ERRORS_PROPERTY = "latencytrackederrors";
   private final DB db;
   private final Measurements measurements;
   private final Tracer tracer;
+
+  private boolean reportLatencyForEachError = false;
+  private Set<String> latencyTrackedErrors = new HashSet<String>();
+
+  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY = "reportlatencyforeacherror";
+  private static final String REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY_DEFAULT = "false";
+
+  private static final String LATENCY_TRACKED_ERRORS_PROPERTY = "latencytrackederrors";
+
   private final String scopeStringCleanup;
   private final String scopeStringDelete;
   private final String scopeStringInit;
@@ -41,8 +48,6 @@ public class DBWrapper extends DB {
   private final String scopeStringRead;
   private final String scopeStringScan;
   private final String scopeStringUpdate;
-  private boolean reportLatencyForEachError = false;
-  private Set<String> latencyTrackedErrors = new HashSet<String>();
 
   public DBWrapper(final DB db, final Tracer tracer) {
     this.db = db;
@@ -56,23 +61,6 @@ public class DBWrapper extends DB {
     scopeStringRead = simple + "#read";
     scopeStringScan = simple + "#scan";
     scopeStringUpdate = simple + "#update";
-  }
-
-  private void measure(String op, Status result, long intendedStartTimeNanos,
-                       long startTimeNanos, long endTimeNanos) {
-    String measurementName = op;
-    if (result == null || !result.isOk()) {
-      if (this.reportLatencyForEachError ||
-          this.latencyTrackedErrors.contains(result.getName())) {
-        measurementName = op + "-" + result.getName();
-      } else {
-        measurementName = op + "-FAILED";
-      }
-    }
-    measurements.measure(measurementName,
-        (int) ((endTimeNanos - startTimeNanos) / 1000));
-    measurements.measureIntended(measurementName,
-        (int) ((endTimeNanos - intendedStartTimeNanos) / 1000));
   }
 
   /**
@@ -95,11 +83,7 @@ public class DBWrapper extends DB {
    */
   public void init() throws DBException {
     try (final TraceScope span = tracer.newScope(scopeStringInit)) {
-      long ist = measurements.getIntendedtartTimeNs();
-      long st = System.nanoTime();
       db.init();
-      long en = System.nanoTime();
-      measure("INITIALISE", Status.OK, ist, st, en);
 
       this.reportLatencyForEachError = Boolean.parseBoolean(getProperties().
           getProperty(REPORT_LATENCY_FOR_EACH_ERROR_PROPERTY,
@@ -137,8 +121,8 @@ public class DBWrapper extends DB {
    * Read a record from the database. Each field/value pair from the result
    * will be stored in a HashMap.
    *
-   * @param table  The name of the table
-   * @param key    The record key of the record to read.
+   * @param table The name of the table
+   * @param key The record key of the record to read.
    * @param fields The list of fields to read, or null for all of them
    * @param result A HashMap of field/value pairs for the result
    * @return The result of the operation.
@@ -152,8 +136,6 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("READ", res, ist, st, en);
       measurements.reportStatus("READ", res);
-      measure("READ" + table, res, ist, st, en);
-      measurements.reportStatus("READ" + table, res);
       return res;
     }
   }
@@ -162,11 +144,11 @@ public class DBWrapper extends DB {
    * Perform a range scan for a set of records in the database.
    * Each field/value pair from the result will be stored in a HashMap.
    *
-   * @param table       The name of the table
-   * @param startkey    The record key of the first record to read.
+   * @param table The name of the table
+   * @param startkey The record key of the first record to read.
    * @param recordcount The number of records to read
-   * @param fields      The list of fields to read, or null for all of them
-   * @param result      A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
   public Status scan(String table, String startkey, int recordcount,
@@ -178,19 +160,33 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("SCAN", res, ist, st, en);
       measurements.reportStatus("SCAN", res);
-      measure("SCAN" + table, res, ist, st, en);
-      measurements.reportStatus("SCAN" + table, res);
       return res;
     }
   }
 
+  private void measure(String op, Status result, long intendedStartTimeNanos,
+                       long startTimeNanos, long endTimeNanos) {
+    String measurementName = op;
+    if (result == null || !result.isOk()) {
+      if (this.reportLatencyForEachError ||
+          this.latencyTrackedErrors.contains(result.getName())) {
+        measurementName = op + "-" + result.getName();
+      } else {
+        measurementName = op + "-FAILED";
+      }
+    }
+    measurements.measure(measurementName,
+        (int) ((endTimeNanos - startTimeNanos) / 1000));
+    measurements.measureIntended(measurementName,
+        (int) ((endTimeNanos - intendedStartTimeNanos) / 1000));
+  }
 
   /**
    * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
    * record with the specified record key, overwriting any existing values with the same field name.
    *
-   * @param table  The name of the table
-   * @param key    The record key of the record to write.
+   * @param table The name of the table
+   * @param key The record key of the record to write.
    * @param values A HashMap of field/value pairs to update in the record
    * @return The result of the operation.
    */
@@ -203,8 +199,6 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("UPDATE", res, ist, st, en);
       measurements.reportStatus("UPDATE", res);
-      measure("UPDATE" + table, res, ist, st, en);
-      measurements.reportStatus("UPDATE" + table, res);
       return res;
     }
   }
@@ -214,8 +208,8 @@ public class DBWrapper extends DB {
    * values HashMap will be written into the record with the specified
    * record key.
    *
-   * @param table  The name of the table
-   * @param key    The record key of the record to insert.
+   * @param table The name of the table
+   * @param key The record key of the record to insert.
    * @param values A HashMap of field/value pairs to insert in the record
    * @return The result of the operation.
    */
@@ -228,8 +222,6 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("INSERT", res, ist, st, en);
       measurements.reportStatus("INSERT", res);
-      measure("INSERT" + table, res, ist, st, en);
-      measurements.reportStatus("INSERT" + table, res);
       return res;
     }
   }
@@ -238,7 +230,7 @@ public class DBWrapper extends DB {
    * Delete a record from the database.
    *
    * @param table The name of the table
-   * @param key   The record key of the record to delete.
+   * @param key The record key of the record to delete.
    * @return The result of the operation.
    */
   public Status delete(String table, String key) {
@@ -249,8 +241,6 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("DELETE", res, ist, st, en);
       measurements.reportStatus("DELETE", res);
-      measure("DELETE" + table, res, ist, st, en);
-      measurements.reportStatus("DELETE" + table, res);
       return res;
     }
   }

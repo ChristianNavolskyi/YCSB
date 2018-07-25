@@ -27,6 +27,10 @@ times=1
 workloadFolder=""
 workloadFiles=()
 
+
+./multi-db-runner.sh -d neo4j -d orientdb -d apachejena -d sparksee -f neo4j.db -f orientdb.url -f apachejena.db -f sparksee.db -o ~/Desktop/outputs/ -s ~/Desktop/outputs/datasets/ -t 1 -w ../workloads/testing/
+
+
 usage="Usage: $(basename "$0") -w workloadFolder <options>"
 description="Program to run multiple databases with multiple workloads."
 options="
@@ -215,7 +219,7 @@ folderOptionString=""
 for pathOption in ${folderOptions[*]}; do
     if [ "$pathOption" == "orientdb.url" ]; then
         folderOptionString+="-p $pathOption=plocal:$databaseFolder "
-    elif [ "$pathOption" == "sparksee.path" ]; then
+    elif [ "$pathOption" == "sparksee.db" ]; then
         folderOptionString+="-p $pathOption=$databaseFolder/database.gdb "
     else
         folderOptionString+="-p $pathOption=$databaseFolder "
@@ -247,7 +251,7 @@ for workload in ${workloadFiles[*]}; do
     mkdir -p ${dataSetFolder}
     for runType in ${runTypes[*]}; do
         progress $(( current / numOfTotalBenchmarkRuns )) "$(basename ${workload}) $runType"
-        ./ycsb.sh ${runType} basic -P ${workload} -p datasetdirectory=${dataSetFolder} &> /dev/null
+        ycsbd.sh ${runType} basic -P ${workload} -p datasetdirectory=${dataSetFolder} &> /dev/null
         current=$(( $current + 100 ))
     done
 
@@ -265,7 +269,7 @@ for workload in ${workloadFiles[*]}; do
                 if [ ! -d ${measurementsFolder} ]; then
                     mkdir -p ${measurementsFolder}
 
-                    ./ycsb.sh ${runType} ${database} -P ${workload} -s -p datasetdirectory=${dataSetFolder} \
+                    ycsbd.sh ${runType} ${database} -P ${workload} -s -p datasetdirectory=${dataSetFolder} \
                     ${parameterString} \
                     ${folderOptionString} \
                     -p measurement.trackjvm=true \

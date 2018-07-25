@@ -19,11 +19,13 @@
 #
 #   Default data size: 500 Byte records (label, id and a String as a generic value with 500 bytes)
 
-recordcount=100
-operationcount=100
+recordcount=1000
+operationcount=1000
 workload=com.yahoo.ycsb.workloads.GraphWorkload
 
 testparametercount=1
+productsperorder=10
+componentsperproduct=2
 
 readproportion=0.25
 updateproportion=0.25

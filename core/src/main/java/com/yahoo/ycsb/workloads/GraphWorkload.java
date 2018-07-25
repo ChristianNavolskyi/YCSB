@@ -100,7 +100,8 @@ public class GraphWorkload extends Workload {
         MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
 
     String outputDirectory = getOutputDirectory(properties);
-    boolean isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY));
+    boolean isRunPhase = Boolean.parseBoolean(properties.getProperty(Client.DO_TRANSACTIONS_PROPERTY,
+        String.valueOf(true)));
 
     try {
       graphDataGenerator = GraphDataGenerator.create(outputDirectory, isRunPhase, properties);

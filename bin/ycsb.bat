@@ -1,5 +1,5 @@
 @REM
-@REM Copyright (c) 2012 - 2018 YCSB contributors. All rights reserved.
+@REM Copyright (c) 2012 - 2016 YCSB contributors. All rights reserved.
 @REM
 @REM Licensed under the Apache License, Version 2.0 (the "License"); you
 @REM may not use this file except in compliance with the License. You
@@ -134,6 +134,14 @@ echo [WARN] The 'cassandra2-cql' client has been deprecated. It has been renamed
 SET BINDING_DIR=cassandra
 :notAliasCassandra
 
+@REM arangodb3 deprecation message
+IF NOT "%BINDING_DIR%" == "arangodb3" GOTO notAliasArangodb3
+echo [WARN] The 'arangodb3' client has been deprecated. The binding 'arangodb' now covers every ArangoDB version. This alias will be removed in the next YCSB release.
+SET BINDING_DIR=arangodb
+:notAliasArangodb3
+
+@REM Build classpath according to source checkout or release distribution
+IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 @REM Build classpath according to source checkout or release distribution
 IF EXIST "%YCSB_HOME%\pom.xml" GOTO gotSource
 
@@ -155,7 +163,11 @@ GOTO classpathComplete
 
 :gotSource
 @REM Check for some basic libraries to see if the source has been built.
-IF EXIST "%YCSB_HOME%\%BINDING_DIR%\target\*.jar" GOTO gotJars
+IF EXIST "%YCSB_HOME%\core\target\dependency\*.jar" (
+  IF EXIST "%YCSB_HOME%\%BINDING_DIR%\target\*.jar" (
+    GOTO gotJars
+  )
+)
 
 @REM Call mvn to build source checkout.
 IF "%BINDING_NAME%" == "basic" GOTO buildCore
@@ -166,7 +178,7 @@ SET MVN_PROJECT=core
 :gotMvnProject
 
 ECHO [WARN] YCSB libraries not found.  Attempting to build...
-CALL mvn -pl com.yahoo.ycsb:%MVN_PROJECT% -am package -DskipTests
+CALL mvn -Psource-run -pl com.yahoo.ycsb:%MVN_PROJECT% -am package -DskipTests
 IF %ERRORLEVEL% NEQ 0 (
   ECHO [ERROR] Error trying to build project. Exiting.
   GOTO exit

@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ApacheJenaClient extends DB {
 
-  private static final String OUTPUT_DIRECTORY_PROPERTY = "outputdirectory";
+  private static final String OUTPUT_DIRECTORY_PROPERTY = "apachejena.db";
   private static final String OUTPUT_DIRECTORY_DEFAULT = new File(System.getProperty("user.dir"),
       "apachejena_database").getAbsolutePath();
   private static final AtomicInteger INIT_COUNT = new AtomicInteger();
